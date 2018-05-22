@@ -84,20 +84,42 @@ def print_df(data_frame):
 
 def main():
     quote_ctx = ft.OpenQuoteContext(host="10.140.0.5", port=11111)
-    print(quote_ctx.subscribe('US.HUYA', 'QUOTE'))
-    print(quote_ctx.subscribe('US.HUYA', 'TICKER'))
-    print(quote_ctx.subscribe('US.HUYA', 'K_1M'))
-    print(quote_ctx.subscribe('US.HUYA', 'ORDER_BOOK'))
-    print(quote_ctx.subscribe('US.HUYA', 'RT_DATA'))
-    print(quote_ctx.subscribe('US.HUYA', 'BROKER'))
-    print(quote_ctx.query_subscription())
-    print(quote_ctx.get_stock_quote('US.HUYA'))
-    print_df(quote_ctx.get_cur_kline('US.HUYA', 100, ktype='K_1M', autype='qfq'))
-    print_df(quote_ctx.get_rt_ticker('US.HUYA', num=500))
-    print(quote_ctx.get_order_book('US.HUYA'))
-    print_df(quote_ctx.get_rt_data('US.HUYA'))
-    print_df(quote_ctx.get_broker_queue('US.HUYA'))
-    quote_ctx.start()
+    # print(quote_ctx.subscribe('US.HUYA', 'QUOTE'))
+    # print(quote_ctx.subscribe('US.HUYA', 'TICKER'))
+    # print(quote_ctx.subscribe('US.HUYA', 'K_1M'))
+    # print(quote_ctx.subscribe('US.HUYA', 'ORDER_BOOK'))
+    # print(quote_ctx.subscribe('US.HUYA', 'RT_DATA'))
+    # print(quote_ctx.subscribe('US.HUYA', 'BROKER'))
+    # print(quote_ctx.query_subscription())
+    # print(quote_ctx.get_stock_quote('US.HUYA'))
+    # print_df(quote_ctx.get_cur_kline('US.HUYA', 100, ktype='K_1M', autype='qfq'))
+    # print_df(quote_ctx.get_rt_ticker('US.HUYA', num=500))
+    # print(quote_ctx.get_order_book('US.HUYA'))
+    # print_df(quote_ctx.get_rt_data('US.HUYA'))
+    # print_df(quote_ctx.get_broker_queue('US.HUYA'))
+    # quote_ctx.start()
+
+    stock_type = 'K_DAY'
+    kline_res = quote_ctx.get_history_kline('US.AAPL', ktype='K_1M', start='2017-01-01', end='2018-01-21')
+    print(kline_res)
+    kline_pd = kline_res[1]
+    keys = kline_pd.keys().values
+    kline = kline_pd.values
+    print('\t'.join(keys))
+    for row in kline:
+        for e in row:
+            print(e, end='\t')
+        print()
+
+    def map_str(s):
+        s1, s2 = s.split()
+        return int('%s%s%s' % (s1.split('-')[-1], s2.split(':')[0], s2.split(':')[1]))
+
+    x = range(len(list(kline[:, 1])))
+    y1 = kline[:, 2]
+    plt.plot(x, y1, linewidth=1.0)
+    plt.savefig('test.png', dpi=300)
+    # plt.show()
 
     # stock_type = 'K_15M'
     # num = 500
