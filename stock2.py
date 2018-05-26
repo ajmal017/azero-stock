@@ -100,11 +100,12 @@ def main():
     # quote_ctx.start()
 
     stock_type = 'K_DAY'
-    kline_res = quote_ctx.get_history_kline('US.AAPL', ktype='K_1M', start='2017-01-01', end='2018-01-21')
+    kline_res = quote_ctx.get_history_kline('US.HUYA', ktype='K_1M', start='2018-02-01', end='2018-05-23')
     print(kline_res)
     kline_pd = kline_res[1]
     keys = kline_pd.keys().values
     kline = kline_pd.values
+    kline = np.array(sorted(kline, key=lambda ele: ele[-1], reverse=True))
     print('\t'.join(keys))
     for row in kline:
         for e in row:
@@ -115,11 +116,12 @@ def main():
         s1, s2 = s.split()
         return int('%s%s%s' % (s1.split('-')[-1], s2.split(':')[0], s2.split(':')[1]))
 
-    x = range(len(list(kline[:, 1])))
-    y1 = kline[:, 2]
+    x = range(len(kline))
+    y1 = kline[:, -1]
+    plt.figure(dpi=200)
     plt.plot(x, y1, linewidth=1.0)
-    plt.savefig('test.png', dpi=300)
-    # plt.show()
+    # plt.savefig('test.png', dpi=300)
+    plt.show()
 
     # stock_type = 'K_15M'
     # num = 500
@@ -176,3 +178,27 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+
+# from futu import *
+#
+#
+# def main():
+#     stock_api = FutuStockApi(host='10.140.0.5')
+#     # print(stock_api.get_trading_days('US'))
+#     # print(stock_api.get_stock_basicinfo('US', stock_type='STOCK'))
+#     # print(stock_api.get_autype_list(['US.AAPL']))
+#     # print(stock_api.get_market_snapshot(['US.AAPL']))
+#     # print(stock_api.get_plate_list('US', 'ALL'))
+#     # print(stock_api.get_plate_stock('US.BK2096'))
+#     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+#         print(stock_api.get_history_kline('US.BRK.A', ktype='K_1M', start='2017-05-18', end='2017-05-19'))
+#     # print(stock_api.subscribe('US.HUYA', 'K_1M', True))
+#     # print(stock_api.subscribe('US.HUYA', 'RT_DATA', True))
+#     # print(stock_api.get_rt_data('US.HUYA'))
+#     # stock_api.start()
+#
+#
+# if __name__ == '__main__':
+#     main()
