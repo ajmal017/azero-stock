@@ -100,7 +100,7 @@ def main():
     # quote_ctx.start()
 
     stock_type = 'K_DAY'
-    kline_res = quote_ctx.get_history_kline('US.HUYA', ktype='K_1M', start='2018-02-01', end='2018-05-23')
+    kline_res = quote_ctx.get_history_kline('US.HUYA', ktype='K_1M', start='2018-02-01', end='2018-02-10')
     print(kline_res)
     kline_pd = kline_res[1]
     keys = kline_pd.keys().values
@@ -118,7 +118,7 @@ def main():
 
     x = range(len(kline))
     y1 = kline[:, -1]
-    plt.figure(dpi=200)
+    plt.figure(dpi=100)
     plt.plot(x, y1, linewidth=1.0)
     # plt.savefig('test.png', dpi=300)
     plt.show()
