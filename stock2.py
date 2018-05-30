@@ -62,7 +62,7 @@ class BrokerTest(BrokerHandlerBase):
         ret_code, ask_content, bid_content = super(BrokerTest, self).on_recv_rsp(
             rsp_str)  # 基类的on_recv_rsp方法解包返回经纪队列，格式与get_broker_queue一样
         if ret_code != RET_OK:
-            print("BrokerTest: error, msg: %s %s " % ask_content % bid_content)
+            print("BrokerTest: error, msg: %s %s " % (ask_content, bid_content))
             return RET_ERROR, ask_content, bid_content
         print("BrokerTest", ask_content, bid_content)
         return RET_OK, ask_content, bid_content
@@ -99,8 +99,7 @@ def main():
     # print_df(quote_ctx.get_broker_queue('US.HUYA'))
     # quote_ctx.start()
 
-    stock_type = 'K_DAY'
-    kline_res = quote_ctx.get_history_kline('US.HUYA', ktype='K_1M', start='2018-02-01', end='2018-02-10')
+    kline_res = quote_ctx.get_history_kline('US.IQ', ktype='K_1M', start='2018-02-01', end='2018-02-10')
     print(kline_res)
     kline_pd = kline_res[1]
     keys = kline_pd.keys().values
@@ -120,7 +119,7 @@ def main():
     y1 = kline[:, -1]
     plt.figure(dpi=100)
     plt.plot(x, y1, linewidth=1.0)
-    # plt.savefig('test.png', dpi=300)
+    plt.savefig('a.png', dpi=300)
     plt.show()
 
     # stock_type = 'K_15M'
@@ -202,3 +201,83 @@ if __name__ == '__main__':
 #
 # if __name__ == '__main__':
 #     main()
+
+
+
+
+
+    # kline_res = api.get_history_kline('US.IQ', ktype='K_1M', start='2018-02-01', end='2018-05-01')
+    # # print(kline_res)
+    # kline_pd = kline_res[1]
+    # keys = kline_pd.keys().values
+    # kline = kline_pd.values
+    #
+    #
+    # # kline = np.array(sorted(kline, key=lambda ele: ele[-1], reverse=True))
+    # # print('\t'.join(keys))
+    # # for row in kline:
+    # #     for e in row:
+    # #         print(e, end='\t')
+    # #     print()
+    #
+    # def map_str(s):
+    #     s1, s2 = s.split()
+    #     return int('%s%s%s' % (s1.split('-')[-1], s2.split(':')[0], s2.split(':')[1]))
+    #
+    #
+    # n = len(kline)
+    # x = np.array(kline[:, 1])
+    # y1 = np.array(kline[:, -1], dtype=np.float32)
+    # y2 = np.array(kline[:, 2], dtype=np.float32)
+    # max_price = np.max(kline[:, 2])
+    # min_price = np.min(kline[:, 2])
+    # avg_price = float((max_price + min_price) / 2)
+    # print(max_price)
+    # print(min_price)
+    # print(avg_price)
+    #
+    #
+    # def _get_index(e1):
+    #     res = list(filter(lambda e2: (e2[1][1] - e1[1]) / e1[1] >= 0.2,
+    #                       [(i, e0) for i, e0 in enumerate(list(kline[:, 1:3]))][e1[0] + 1:]))
+    #     return (res[0][0], res[0][1]) if res else (-1, )
+    #
+    #
+    # days = list(map(lambda e1: (e1[1], _get_index(e1), e1[2]),
+    #                 [(i, e0, kline[i, 1]) for i, e0 in enumerate(list(kline[:, 2]))]))
+    # sort_days = sorted(days, key=lambda e1: e1[1][0])
+    # # for eday in days:
+    # #     print(eday)
+    #
+    # fig, ax = plt.subplots(1)
+    # datemin = np.datetime64(kline[0][1])
+    # datemax = np.datetime64(kline[-1][1])
+    # ax.set_xlim(datemin, datemax)
+    # ax.format_xdata = mdates.DateFormatter('%Y-%m-%d')
+    # z = np.arange(datemin, datemax, step=int((datemax.astype('uint64') - datemin.astype('uint64')) / (len(kline))))
+    # plt.plot(z, y2, linewidth=1.0)
+    # fig.autofmt_xdate()
+    # fig.savefig('a.png', dpi=300)
+    # print('positive %d' % len(list(filter(lambda e1: e1[1][0] > 0, days))))
+    # print('negative %d' % len(list(filter(lambda e1: e1[1][0] < 0, days))))
+    # print('postive > avg price %f' % ((len(list(filter(lambda e1: e1[0] < avg_price and e1[1][0] > 0, days)))) /
+    #                                   (len(list(filter(lambda e1: e1[0] < avg_price, days))))))
+    # print('-------------------------')
+    # x = list(map(lambda e1: e1[1], sort_days))
+    # y = list(map(lambda e1: (e1[2], e1[0]), sort_days))
+    # plt.figure(dpi=100)
+    # plt.grid()
+    # plt.plot(x, y, linewidth=1.0)
+    # plt.show()
+    #
+    # plt.figure(dpi=100)
+    # plt.grid()
+    # # fig, (ax1) = plt.subplots(1, 1, sharex=True)
+    # plt.plot(x, y1, linewidth=1.0)
+    # plt.fill_between(x, 0, y1)
+    # # plt.savefig('test.png', dpi=300)
+    # plt.show()
+    # print(sum(y1) / (sum(list(map(abs, y1)))))
+    # cfg = get_config('server')
+    # app.config['TEMPLATES_AUTO_RELOAD'] = True
+    # app.run(debug=True, host=cfg['ServerHost'], port=int(cfg['ServerPort']))
