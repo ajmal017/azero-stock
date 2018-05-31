@@ -1,6 +1,7 @@
 import futuquant as ft
-from utils import *
 from futuquant.open_context import *
+
+from utils import *
 
 
 def init_quote_ctx():
@@ -12,7 +13,14 @@ quote_ctx = init_quote_ctx()
 
 
 def get_trading_days(market, start_date=None, end_date=None):
-    return quote_ctx.get_trading_days(market, start_date, end_date)
+    res = quote_ctx.get_trading_days(market, start_date, end_date)
+
+    # An error occurred, directly return the error response.
+    if isinstance(res, tuple) and res[0] != 0:
+        return res
+
+    # No error, convert list into data frame.
+    return res[0], pd.DataFrame({'date': res[1]})
 
 
 def get_stock_basicinfo(market, stock_type=None):

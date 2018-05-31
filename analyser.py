@@ -115,9 +115,7 @@ class StockAnalyser(object):
 
     def draw_stocks(self, args):
         stocks = self._get_stocks_kline(args)
-        num_stock = len(stocks)
-        self.pandas_candlestick_ohlc(stocks[0], otherseries=np.round(
-            stocks[0]["close"].rolling(window=5, center=False).mean(), 2))
+        self.pandas_candlestick_ohlc(stocks[0])
 
     def dispatch(self):
         parser = argparse.ArgumentParser(description='Stock analyser argument parser.')
