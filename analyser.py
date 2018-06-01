@@ -1,7 +1,9 @@
 from matplotlib import pyplot as plt
 from matplotlib.dates import WeekdayLocator, MONDAY, DayLocator, DateFormatter, date2num
 from mpl_finance import candlestick_ohlc
+from dateutil import parser
 
+import datetime
 import futu_api as api
 import pandas as pd
 import numpy as np
@@ -9,7 +11,9 @@ import argparse
 
 
 class StockAnalyser(object):
-    def _get_stock_kline(self, stock, start, end, ktype, autype):
+    TURING_POINT_PRICE_PERCENT_THRESHOLD = 0.01
+
+    def _get_stock_kline(self, stock, start, end, ktype='K_DAY', autype='qfq'):
         res = api.get_history_kline(stock, start, end, ktype, autype)
         if not res or res[0] != 0:
             raise RuntimeError('Get stock kline error: %s' % res[1])
@@ -113,9 +117,81 @@ class StockAnalyser(object):
         plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
         plt.savefig('b.png', dpi=200)
 
+    def _get_turning_points(self, prices):
+        if len(prices) == 0:
+            return []
+
+        # First find local min or max price points
+        local_opt_points = [(i, prices[i] < prices[i + 1] and prices[i] < prices[i - 1])
+                            for i in range(1, len(prices) - 1) if
+                            (prices[i] < prices[i + 1] and prices[i] < prices[i - 1]) or
+                            (prices[i] > prices[i + 1] and prices[i] > prices[i - 1])]
+
+        # Second, obtaining the higher level TPs
+        def _is_p1_and_p2_less_important(p0, p1, p2, p3):
+            return (p0 > p2 and p1 > p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3)) or
+                    (p0 < p2 and p1 < p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3))) or
+                    (min(p1, p3) / max(p1, p3) < self.TURING_POINT_PRICE_PERCENT_THRESHOLD and
+                     min(p0, p2) / max(p0, p2) < self.TURING_POINT_PRICE_PERCENT_THRESHOLD))
+
+        res = []
+        for _ in range(1):
+            i = 0
+            res.clear()
+            while i < len(local_opt_points) and local_opt_points[i][0] < len(prices) - 3:
+                if _is_p1_and_p2_less_important(prices[local_opt_points[i]], prices[local_opt_points[i + 1]],
+                                                prices[local_opt_points[i + 2]], prices[local_opt_points[i + 3]]):
+                    res.append(local_opt_points[i])
+                    res.append(local_opt_points[i + 3])
+                    i += 3
+                else:
+                    res.append(local_opt_points[i])
+                    i += 1
+            local_opt_points = list(res)
+        return res
+
+    # def _find_turning_points(self, prices):
+    #     if len(prices) == 0:
+    #         return []
+    #     diff_price = [(prices[i - 1] + prices[i - 1] - prices[i] * 2) / 4
+    #                   for i in range(1, len(prices) - 1)]
+    #     res = []
+    #     negative = diff_price[0] < 0
+    #     price_max_offset = max(prices) - min(prices)
+    #     for i in range(len(diff_price)):
+    #         if (negative and diff_price[i] > 0) or (not negative and diff_price[i] < 0):
+    #             if diff_price[i] < self.TURING_POINT_DIFF_THRESHOLD and \
+    #                     (len(res) == 0 or (abs(prices[i] - prices[res[-1]]) >
+    #                                        price_max_offset * self.TURING_POINT_PRICE_PERCENT_THRESHOLD)):
+    #                 res.append(i)
+    #             negative = not negative
+    #     return res
+
+    def _draw_stock(self, stock):
+        if len(stock.values) == 0:
+            return
+
+        start = stock['time_key'][0]
+        end = stock['time_key'][-1]
+        code = stock['code'][0]
+        open_price = stock['open']
+        turning_point_index = self._get_turning_points(open_price)
+        print(turning_point_index)
+        stock_graph = stock.plot(y='open', title='%s~%s~%s stock price' % (code, str(start), str(end)),
+                                 grid=True, marker='o', markerfacecolor='red',
+                                 markevery=turning_point_index)
+        fig = stock_graph.get_figure()
+        fig.savefig('%s~%s~%s.png' % (code, str(start), str(end)), dpi=200)
+
     def draw_stocks(self, args):
-        stocks = self._get_stocks_kline(args)
-        self.pandas_candlestick_ohlc(stocks[0])
+        start = parser.parse('2018-05-11')
+        while start != parser.parse('2018-05-12'):
+            end = start + datetime.timedelta(days=1)
+            stock = self._get_stock_kline('US.HUYA', start.strftime('%Y-%m-%d'), start.strftime('%Y-%m-%d'), 'K_1M')
+            self._draw_stock(stock)
+            start = end
+        # stocks = self._get_stocks_kline(args)
+        # self.pandas_candlestick_ohlc(stocks[0])
 
     def dispatch(self):
         parser = argparse.ArgumentParser(description='Stock analyser argument parser.')
