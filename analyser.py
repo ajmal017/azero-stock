@@ -17,6 +17,11 @@ class StockAnalyser(object):
 
     def __init__(self) -> None:
         self.rt_data = []
+        self.low = 9999999.0
+        self.high = 0
+        self.open = -1
+        self.close = -1
+        self.yesterday_close = -1
 
     def _get_stock_kline(self, stock, start, end, ktype='K_DAY', autype='qfq'):
         res = api.get_history_kline(stock, start, end, ktype, autype)
@@ -172,23 +177,6 @@ class StockAnalyser(object):
         res = prices[list(map(lambda x: x[0], res))]
         return res if level == 0 else self._get_turning_points(prices.drop(prices[removed_points].index), level - 1)
 
-    # def _find_turning_points(self, prices):
-    #     if len(prices) == 0:
-    #         return []
-    #     diff_price = [(prices[i - 1] + prices[i - 1] - prices[i] * 2) / 4
-    #                   for i in range(1, len(prices) - 1)]
-    #     res = []
-    #     negative = diff_price[0] < 0
-    #     price_max_offset = max(prices) - min(prices)
-    #     for i in range(len(diff_price)):
-    #         if (negative and diff_price[i] > 0) or (not negative and diff_price[i] < 0):
-    #             if diff_price[i] < self.TURING_POINT_DIFF_THRESHOLD and \
-    #                     (len(res) == 0 or (abs(prices[i] - prices[res[-1]]) >
-    #                                        price_max_offset * self.TURING_POINT_PRICE_PERCENT_THRESHOLD)):
-    #                 res.append(i)
-    #             negative = not negative
-    #     return res
-
     def _draw_stock(self, stock):
         if len(stock.values) == 0:
             return
@@ -218,23 +206,64 @@ class StockAnalyser(object):
         # self.pandas_candlestick_ohlc(stocks[0])
 
     def get_realtime_stock_data(self, args):
-        def _handle_data(resp):
+        def _data_notify(resp):
+            # close = resp['close'][0]
+            # volume = float(resp['volume'][0])
+            pass
+
+        def _handle_K_1M_data(resp):
+            if self.low == 9999999 or self.high == 0:
+                return
+
             close = resp['close'][0]
+            volume = float(resp['volume'][0])
             tz = timezone('EST')
             cur_datetime = datetime.datetime.now(tz)
-            self.rt_data.append((time.time(), float('%.3f' % close)))
+            self.rt_data.append((time.time(), float('%.3f' % close), float('%.3f' % volume)))
             rt_data_p = list(map(lambda x: x[1], self.rt_data))
+            rt_data_v = list(map(lambda x: x[2], self.rt_data))
             prev_percent = (close / rt_data_p[-2] - 1) if len(self.rt_data) > 1 else 0
             cur_time = cur_datetime.strftime('%H:%M:%S')
-            print('%s min:%f(+%.4f%%), max:%f(-%.4f%%), cur:%f, prev:%s%.4f' % (
-                cur_time,
-                min(rt_data_p), (close / min(rt_data_p) - 1),
-                max(rt_data_p), (max(rt_data_p) / close - 1),
-                close, '+' if prev_percent > 0 else '', prev_percent
-            ))
+            move_avg = sum(rt_data_p[-50:]) / min(50, len(rt_data_p)) if rt_data_p else 0
+            move_avg_volume = sum(rt_data_v[-50:]) / min(50, len(rt_data_v)) if rt_data_v else 0
+            print('\n%s min:%.3f(+%.4f%%), max:%f(-%.4f%%), open:%.3f(%s%.4f%%), '
+                  'today:(%s%.4f%%), cur:%.3f\nmove_avg:%.3f(%s%.4f%%), prev:%s%.4f, volume:%.3f(%s%.4f%%)' % (
+                      cur_time,
+                      self.low, (close / self.low - 1) * 100,
+                      self.high, (self.high / close - 1) * 100,
+                      self.open,
+                      '+' if close > self.open != -1 else '',
+                      (close / self.open - 1) * 100 if self.open != -1 else 0,
+                      '+' if close > self.yesterday_close != -1 else '',
+                      (close / self.yesterday_close - 1) * 100 if self.yesterday_close != -1 else 0,
+                      move_avg,
+                      close, '+' if close > move_avg > 0 else '',
+                      (close / move_avg - 1) * 100 if move_avg > 0 else 0,
+                      '+' if prev_percent > 0 else '', prev_percent,
+                      volume, '+' if volume > move_avg_volume > 0 else '',
+                      (volume / move_avg_volume - 1) * 100
+                  ))
+            _data_notify(resp)
 
-        api.subscribe(args.stocks, 'K_1M', True)
-        api.get_cur_kline(args.stocks, 1, ktype='K_1M', async_handler=_handle_data)
+        def _handle_K_DAY_data(resp):
+            self.high = max(self.high, resp['high'][0])
+            self.low = min(self.low, resp['low'][0])
+            self.open = resp['open'][0]
+            self.close = resp['close'][0]
+
+        def _handle_data(resp):
+            k_type = resp['k_type'][0]
+            if k_type == 'K_1M':
+                _handle_K_1M_data(resp)
+            elif k_type == 'K_DAY':
+                _handle_K_DAY_data(resp)
+
+        api.subscribe(args.stocks, args.ktype, True)
+        api.subscribe(args.stocks, 'K_DAY', True)
+        cur_data = api.get_cur_kline(args.stocks, 2)
+        self.yesterday_close = cur_data[1]['close'][0]
+        api.get_cur_kline(args.stocks, 1, ktype=args.ktype, async_handler=_handle_data)
+        api.get_cur_kline(args.stocks, 1, ktype='K_DAY', async_handler=_handle_data)
         api.start()
 
     def dispatch(self):
