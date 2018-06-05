@@ -1,8 +1,10 @@
+from pytz import timezone
 from matplotlib import pyplot as plt
 from matplotlib.dates import WeekdayLocator, MONDAY, DayLocator, DateFormatter, date2num
 from mpl_finance import candlestick_ohlc
 from dateutil import parser
 
+import time
 import datetime
 import futu_api as api
 import pandas as pd
@@ -11,7 +13,10 @@ import argparse
 
 
 class StockAnalyser(object):
-    TURING_POINT_PRICE_PERCENT_THRESHOLD = 0.01
+    TURING_POINT_PRICE_PERCENT_THRESHOLD = 0.99
+
+    def __init__(self) -> None:
+        self.rt_data = []
 
     def _get_stock_kline(self, stock, start, end, ktype='K_DAY', autype='qfq'):
         res = api.get_history_kline(stock, start, end, ktype, autype)
@@ -117,38 +122,55 @@ class StockAnalyser(object):
         plt.setp(plt.gca().get_xticklabels(), rotation=45, horizontalalignment='right')
         plt.savefig('b.png', dpi=200)
 
-    def _get_turning_points(self, prices):
+    def _get_turning_points(self, prices, level=8):
         if len(prices) == 0:
             return []
 
+        # stock_graph = prices.plot(y='open', title='level:%d stock price' % level,
+        #                           grid=True)
+        # fig = stock_graph.get_figure()
+        # fig.savefig('%d.png' % level, dpi=200)
+
         # First find local min or max price points
         local_opt_points = [(i, prices[i] < prices[i + 1] and prices[i] < prices[i - 1])
-                            for i in range(1, len(prices) - 1) if
-                            (prices[i] < prices[i + 1] and prices[i] < prices[i - 1]) or
-                            (prices[i] > prices[i + 1] and prices[i] > prices[i - 1])]
+                            for i in range(1, len(prices) - 1)
+                            if (prices[i] < prices[i + 1] and prices[i] < prices[i - 1])
+                            or (prices[i] > prices[i + 1] and prices[i] > prices[i - 1])]
 
         # Second, obtaining the higher level TPs
-        def _is_p1_and_p2_less_important(p0, p1, p2, p3):
-            return (p0 > p2 and p1 > p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3)) or
-                    (p0 < p2 and p1 < p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3))) or
-                    (min(p1, p3) / max(p1, p3) < self.TURING_POINT_PRICE_PERCENT_THRESHOLD and
-                     min(p0, p2) / max(p0, p2) < self.TURING_POINT_PRICE_PERCENT_THRESHOLD))
+        def _is_p1_and_p2_less_important(p0, p1, p2, p3, is_p0_min, is_p1_min, is_p2_min, is_p3_min):
+            return (not is_p0_min and is_p1_min and not is_p2_min and is_p3_min and
+                    (p0 > p2 and p1 > p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3))) or
+                    (is_p0_min and not is_p1_min and is_p2_min and not is_p3_min and
+                     (p0 < p2 and p1 < p3 and abs(p2 - p1) < (abs(p2 - p0) + abs(p1 - p3)))) or
+                    (is_p0_min and not is_p1_min and is_p2_min and not is_p3_min and
+                     (min(p1, p3) / max(p1, p3) > self.TURING_POINT_PRICE_PERCENT_THRESHOLD) and
+                     (min(p0, p2) / max(p0, p2) > self.TURING_POINT_PRICE_PERCENT_THRESHOLD)) or
+                    (not is_p0_min and is_p1_min and not is_p2_min and is_p3_min and
+                     min(p0, p2) / max(p0, p2) > self.TURING_POINT_PRICE_PERCENT_THRESHOLD) and
+                    (min(p1, p3) / max(p1, p3) > self.TURING_POINT_PRICE_PERCENT_THRESHOLD))
 
         res = []
-        for _ in range(1):
-            i = 0
-            res.clear()
-            while i < len(local_opt_points) and local_opt_points[i][0] < len(prices) - 3:
-                if _is_p1_and_p2_less_important(prices[local_opt_points[i]], prices[local_opt_points[i + 1]],
-                                                prices[local_opt_points[i + 2]], prices[local_opt_points[i + 3]]):
-                    res.append(local_opt_points[i])
-                    res.append(local_opt_points[i + 3])
-                    i += 3
-                else:
-                    res.append(local_opt_points[i])
-                    i += 1
-            local_opt_points = list(res)
-        return res
+        i = 0
+        res.clear()
+        removed_points = []
+        while i < len(local_opt_points) - 3:
+            if _is_p1_and_p2_less_important(prices[local_opt_points[i][0]], prices[local_opt_points[i + 1][0]],
+                                            prices[local_opt_points[i + 2][0]], prices[local_opt_points[i + 3][0]],
+                                            local_opt_points[i][1], local_opt_points[i + 1][1],
+                                            local_opt_points[i + 2][1], local_opt_points[i + 3][1]):
+                res.append(local_opt_points[i])
+                res.append(local_opt_points[i + 3])
+                removed_points.append(local_opt_points[i + 1][0])
+                removed_points.append(local_opt_points[i + 2][0])
+                i += 3
+            else:
+                res.append(local_opt_points[i])
+                i += 1
+        local_opt_points = list(res)
+        print(local_opt_points)
+        res = prices[list(map(lambda x: x[0], res))]
+        return res if level == 0 else self._get_turning_points(prices.drop(prices[removed_points].index), level - 1)
 
     # def _find_turning_points(self, prices):
     #     if len(prices) == 0:
@@ -175,8 +197,10 @@ class StockAnalyser(object):
         end = stock['time_key'][-1]
         code = stock['code'][0]
         open_price = stock['open']
-        turning_point_index = self._get_turning_points(open_price)
-        print(turning_point_index)
+        turning_open_price = self._get_turning_points(open_price)
+        turning_open_price_index_set = set(turning_open_price.index.values)
+        turning_point_index = [i for i, e in enumerate(open_price.index.values) if e in turning_open_price_index_set]
+        print(turning_open_price)
         stock_graph = stock.plot(y='open', title='%s~%s~%s stock price' % (code, str(start), str(end)),
                                  grid=True, marker='o', markerfacecolor='red',
                                  markevery=turning_point_index)
@@ -184,14 +208,34 @@ class StockAnalyser(object):
         fig.savefig('%s~%s~%s.png' % (code, str(start), str(end)), dpi=200)
 
     def draw_stocks(self, args):
-        start = parser.parse('2018-05-11')
-        while start != parser.parse('2018-05-12'):
+        start = parser.parse('2018-04-11')
+        while start != parser.parse('2018-06-02'):
             end = start + datetime.timedelta(days=1)
-            stock = self._get_stock_kline('US.HUYA', start.strftime('%Y-%m-%d'), start.strftime('%Y-%m-%d'), 'K_1M')
+            stock = self._get_stock_kline('US.MOMO', start.strftime('%Y-%m-%d'), start.strftime('%Y-%m-%d'), 'K_1M')
             self._draw_stock(stock)
             start = end
         # stocks = self._get_stocks_kline(args)
         # self.pandas_candlestick_ohlc(stocks[0])
+
+    def get_realtime_stock_data(self, args):
+        def _handle_data(resp):
+            close = resp['close'][0]
+            tz = timezone('EST')
+            cur_datetime = datetime.datetime.now(tz)
+            self.rt_data.append((time.time(), float('%.3f' % close)))
+            rt_data_p = list(map(lambda x: x[1], self.rt_data))
+            prev_percent = (close / rt_data_p[-2] - 1) if len(self.rt_data) > 1 else 0
+            cur_time = cur_datetime.strftime('%H:%M:%S')
+            print('%s min:%f(+%.4f%%), max:%f(-%.4f%%), cur:%f, prev:%s%.4f' % (
+                cur_time,
+                min(rt_data_p), (close / min(rt_data_p) - 1),
+                max(rt_data_p), (max(rt_data_p) / close - 1),
+                close, '+' if prev_percent > 0 else '', prev_percent
+            ))
+
+        api.subscribe(args.stocks, 'K_1M', True)
+        api.get_cur_kline(args.stocks, 1, ktype='K_1M', async_handler=_handle_data)
+        api.start()
 
     def dispatch(self):
         parser = argparse.ArgumentParser(description='Stock analyser argument parser.')
