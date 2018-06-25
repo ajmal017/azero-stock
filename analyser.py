@@ -222,12 +222,12 @@ class StockAnalyser(object):
             self.rt_data.append((time.time(), float('%.3f' % close), float('%.3f' % volume)))
             rt_data_p = list(map(lambda x: x[1], self.rt_data))
             rt_data_v = list(map(lambda x: x[2], self.rt_data))
-            prev_percent = (close / rt_data_p[-2] - 1) if len(self.rt_data) > 1 else 0
+            prev_percent = (close / rt_data_p[-2] - 1) * 100 if len(self.rt_data) > 1 else 0
             cur_time = cur_datetime.strftime('%H:%M:%S')
             move_avg = sum(rt_data_p[-50:]) / min(50, len(rt_data_p)) if rt_data_p else 0
             move_avg_volume = sum(rt_data_v[-50:]) / min(50, len(rt_data_v)) if rt_data_v else 0
             print('\n%s min:%.3f(+%.4f%%), max:%f(-%.4f%%), open:%.3f(%s%.4f%%), '
-                  'today:(%s%.4f%%), cur:%.3f\nmove_avg:%.3f(%s%.4f%%), prev:%s%.4f, volume:%.3f(%s%.4f%%)' % (
+                  'today:(%s%.4f%%), cur:%.3f\nmove_avg:%.3f(%s%.4f%%), prev:(%s%.4f%%), volume:%.3f(%s%.4f%%)' % (
                       cur_time,
                       self.low, (close / self.low - 1) * 100,
                       self.high, (self.high / close - 1) * 100,
@@ -246,10 +246,10 @@ class StockAnalyser(object):
             _data_notify(resp)
 
         def _handle_K_DAY_data(resp):
-            self.high = max(self.high, resp['high'][0])
-            self.low = min(self.low, resp['low'][0])
-            self.open = resp['open'][0]
-            self.close = resp['close'][0]
+            self.high = max(self.high, list(resp['high'])[-1])
+            self.low = min(self.low, list(resp['low'])[-1])
+            self.open = list(resp['open'])[-1]
+            self.close = list(resp['close'])[-1]
 
         def _handle_data(resp):
             k_type = resp['k_type'][0]
@@ -263,7 +263,7 @@ class StockAnalyser(object):
         cur_data = api.get_cur_kline(args.stocks, 2)
         self.yesterday_close = cur_data[1]['close'][0]
         api.get_cur_kline(args.stocks, 1, ktype=args.ktype, async_handler=_handle_data)
-        api.get_cur_kline(args.stocks, 1, ktype='K_DAY', async_handler=_handle_data)
+        api.get_cur_kline(args.stocks, 2, ktype='K_DAY', async_handler=_handle_data)
         api.start()
 
     def dispatch(self):

@@ -102,9 +102,9 @@ def get_cur_kline(code, num, ktype='K_DAY', autype='qfq', async_handler=None):
 
 
 def get_rt_ticker(code, num=500, async_handler=None):
-    class RTDataHandler(RTDataHandlerBase):
+    class TickerHandler(TickerHandlerBase):
         def on_recv_rsp(self, rsp_str):
-            ret_code, content = super(RTDataHandler, self).on_recv_rsp(
+            ret_code, content = super(TickerHandler, self).on_recv_rsp(
                 rsp_str)  # 基类的on_recv_rsp方法解包返回分时数据，格式与get_rt_data一样
             if ret_code != RET_OK:
                 print("RTDataTest: error, msg: %s" % content)
@@ -113,7 +113,7 @@ def get_rt_ticker(code, num=500, async_handler=None):
             return RET_OK, content
 
     if async_handler:
-        return quote_ctx.set_handler(RTDataHandler())
+        return quote_ctx.set_handler(TickerHandler())
 
     return quote_ctx.get_rt_ticker(code, num)
 
