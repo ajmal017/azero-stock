@@ -2,6 +2,7 @@ from flask import Blueprint
 
 import futu_api as api
 from utils import *
+from queue import Queue
 
 market_app = Blueprint('market_app', __name__)
 
@@ -35,6 +36,25 @@ def get_history_kline():
     return parse_resp(status, content)
 
 
-@market_app.route('/stream')
+queue = Queue()
+
+
+def get_cur_kline_handler(data):
+    queue.put(data.to_json(orient='records'))
+
+
+def get_cur_kline_stream():
+    while True:
+        message = queue.get(True)
+        print("Sending {}".format(message))
+        yield "data: {}\n\n".format(message)
+
+
+@market_app.route('/stock/cur_kline_stream')
 def stream():
-    return Response('asd', mimetype="text/event-stream")
+    code = request.args.get('code')
+    ktype = request.args.get('ktype')
+    api.subscribe(code, ktype, True)
+    api.get_cur_kline(code, 1000, ktype=ktype, async_handler=get_cur_kline_handler)
+    api.start()
+    return Response(get_cur_kline_stream(), mimetype="text/event-stream")

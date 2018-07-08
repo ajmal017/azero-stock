@@ -35,7 +35,7 @@ def azero():
         param = param.values[0]
         print(param)
 
-    code = 'HK.00700'
+    code = 'US.IQ'
     print(api.subscribe(code, 'K_1M', True))
     # print(api.subscribe('US.IQ', 'ORDER_BOOK', True))
     # print(api.subscribe('US.IQ', 'BROKER', True))
