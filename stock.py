@@ -5,12 +5,6 @@ from utils import *
 app = Flask(__name__)
 app.register_blueprint(market_app)
 
-
-@app.route('/')
-def hello():
-    return render_template('index.html')
-
-
 if __name__ == "__main__":
     cfg = get_config('server')
     app.config['TEMPLATES_AUTO_RELOAD'] = True
