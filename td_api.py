@@ -10,7 +10,7 @@ class TDBaseApi(object):
     def make_request(self, url, params=None):
         res = r.get(url, params=params).content.decode('utf-8')
         try:
-            return json.loads(res, 'utf-8')
+            return json.loads(res)
         except Exception:
             return res
 
