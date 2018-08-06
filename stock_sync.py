@@ -3,8 +3,11 @@ import pandas as pd
 import json
 import asyncio
 from queue import Queue
-import time
 import os
+import sys
+import datetime
+import logging
+formatter = logging.Formatter('%(message)s')
 
 
 def read_stock_codes():
@@ -86,8 +89,7 @@ def sync_symbol_data(quote_api, symbol_queue, parallel_cnt=25):
 
         print('Current Progress: %.2f%%' % ((1 - symbol_queue.qsize() / float(total_cnt)) * 100))
 
-
-def main():
+def sync_minute_data():
     api_key = 'HXSSG1124@AMER.OAUTHAP'
     quote_api = TDQuoteApi(api_key)
     stock_codes = read_stock_codes()
@@ -96,37 +98,59 @@ def main():
     start = False
     for i, stock_code in enumerate(stock_codes.values):
         code = ''.join(stock_code[1][3:])
-        if code == 'SLTB':
-            start = True
         if not start:
             continue
         for freq in ['1', '5', '10', '15', '30']:
             q.put((code, freq, 1))
-        break
-        # if i == 100:
-        #     break
 
     sync_symbol_data(quote_api, q)
-    # while start < len(stock_codes.values):
-    #     print(start, 'th stock start syncing.')
-    #     end = min(start + parallel_cnt, len(stock_codes.values))
-    #     codes = list(map(lambda x: ''.join(x[1][3:]), stock_codes.values[start: end]))
-    #     sync_symbol_data(quote_api, codes)
-    #     start += parallel_cnt
-    #     if start == 200:
-    #         break
 
-    # print(stock_codes)
-    # api_key = 'HXSSG1124@AMER.OAUTHAP'
-    # quote_api = TDQuoteApi(api_key)
-    # start_date = '2017-01-01'
-    # quotes = quote_api.get_history_quotes('AAPL', start_date=start_date, period=1, period_type='day',
-    #                                       frequency_type='minute', frequency='1', need_extended_hours_data=True)
-    # if 'error' in quotes or not quotes:
-    #     print(quotes)
-    # else:
-    #     candles = quotes['candles']
-    #     print('\n'.join(list(map(lambda x: '%s,%s,%s' % (x['datetime'], x['close'], x['volume']), candles))))
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """Function setup as many loggers as you want"""
+
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
+
+
+def sync_futu_premarket():
+    import futu_api as api
+
+    with open('stock_sync_codes.txt') as f:
+        symbols = list(map(lambda x: x.strip(), f.readlines()))
+
+    loggers = {
+        symbol: setup_logger('%s_order_book' % symbol, 'order_book/%s_order_book.log' % symbol)
+        for symbol in symbols
+    }
+
+    def _handle_order_book(param):
+        currentDT = datetime.datetime.now()
+        time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
+        loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
+
+    for code in symbols:
+        api.subscribe(code, 'ORDER_BOOK', True)
+        api.get_order_book(code, _handle_order_book)
+    api.start()
+
+
+def main():
+    if len(sys.argv) < 2:
+        raise RuntimeError('Must specify sync option')
+    option = sys.argv[1]
+    if option == 'sync_minute':
+        sync_minute_data()
+    elif option == 'sync_futu_premarket':
+        sync_futu_premarket()
+    else:
+        raise RuntimeError('Option(sync_minute or sync_futu_premarket)')
 
 
 if __name__ == '__main__':
