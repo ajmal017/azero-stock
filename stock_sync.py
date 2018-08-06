@@ -142,6 +142,29 @@ def sync_futu_premarket():
     api.start()
 
 
+def sync_rt_data():
+    import futu_api as api
+
+    with open('stock_sync_codes.txt') as f:
+        symbols = list(map(lambda x: x.strip(), f.readlines()))
+
+    loggers = {
+        symbol: setup_logger('%s_rt_data' % symbol, 'rt_data/%s_rt_data.log' % symbol)
+        for symbol in symbols
+    }
+
+    def _handle_rt_data(param):
+        currentDT = datetime.datetime.now(timezone('America/New_York'))
+        time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
+        loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
+
+    for code in symbols:
+        api.subscribe(code, 'RT_DATA', True)
+        api.get_rt_data(code, _handle_rt_data)
+    api.start()
+
+
+
 def main():
     if len(sys.argv) < 2:
         raise RuntimeError('Must specify sync option')
@@ -150,6 +173,8 @@ def main():
         sync_minute_data()
     elif option == 'sync_futu_premarket':
         sync_futu_premarket()
+    elif option == 'sync_rt_data':
+        sync_rt_data()
     else:
         raise RuntimeError('Option(sync_minute or sync_futu_premarket)')
 
