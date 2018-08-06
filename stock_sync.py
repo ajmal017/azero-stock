@@ -7,6 +7,7 @@ import os
 import sys
 import datetime
 import logging
+import pytz
 formatter = logging.Formatter('%(message)s')
 
 
@@ -131,7 +132,7 @@ def sync_futu_premarket():
     }
 
     def _handle_order_book(param):
-        currentDT = datetime.datetime.now()
+        currentDT = datetime.datetime.now(timezone('America/New_York'))
         time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
         loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
 
