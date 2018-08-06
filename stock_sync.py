@@ -156,7 +156,16 @@ def sync_rt_data():
     def _handle_rt_data(param):
         currentDT = datetime.datetime.now(timezone('America/New_York'))
         time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
-        loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
+        symbol = param.values[0][0].replace('US.', '')
+        dt = param.values[0][1]
+        status = param.values[0][2]
+        cur_price = param.values[0][4]
+        last_close = param.values[0][5]
+        avg_price = param.values[0][6]
+        turn_over = param.values[0][7]
+        volume = param.values[0][8]
+        loggers[symbol].info('%s, %s~%s~%s~%s~%s~%s~%s' % (time, dt, status, cur_price, last_close,
+                                                           avg_price, turn_over, volume))
 
     for code in symbols:
         api.subscribe(code, 'RT_DATA', True)
