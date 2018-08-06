@@ -62,7 +62,6 @@ def update_symbol_data(symbol, frequency, quotes):
             file_candles_datetime = set([e['datetime'] for e in file_data['candles']])
             new_candles = [e for e in quotes['candles'] if e['datetime'] not in file_candles_datetime]
             file_data['candles'] += new_candles
-            print('')
     with open('data/%s_minute_%s.json' % (symbol, frequency), 'w') as f:
         json.dump(file_data if file_data else quotes, f)
     print('sync: %s, freq: %s done' % (symbol, frequency))
