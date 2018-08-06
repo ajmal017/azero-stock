@@ -156,7 +156,7 @@ def sync_rt_data():
     def _handle_rt_data(param):
         currentDT = datetime.datetime.now(timezone('America/New_York'))
         time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
-        symbol = param.values[0][0].replace('US.', '').strip()
+        symbol = param.values[0][0]
         dt = param.values[0][1]
         status = param.values[0][2]
         cur_price = param.values[0][4]
