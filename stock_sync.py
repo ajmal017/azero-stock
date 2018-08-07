@@ -135,6 +135,8 @@ def sync_futu_premarket():
     }
 
     def _handle_order_book(param):
+        currentDT = datetime.datetime.now(timezone('America/New_York'))
+        time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
         loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
 
     for code in symbols:
