@@ -7,7 +7,6 @@ import os
 import sys
 import datetime
 import logging
-import pytz
 formatter = logging.Formatter('%(message)s')
 
 
@@ -164,8 +163,7 @@ def sync_rt_data():
         avg_price = param.values[0][6]
         turn_over = param.values[0][7]
         volume = param.values[0][8]
-        loggers[symbol].info('%s, %s~%s~%s~%s~%s~%s~%s' % (time, dt, status, cur_price, last_close,
-                                                           avg_price, turn_over, volume))
+        loggers[symbol].info('%s~%s~%s~%s~%s~%s' % (time, cur_price, last_close, avg_price, turn_over, volume))
 
     for code in symbols:
         api.subscribe(code, 'RT_DATA', True)
