@@ -135,7 +135,7 @@ def sync_futu_premarket():
     def _handle_order_book(param):
         current_dt = datetime.datetime.now(timezone('America/New_York'))
         time = current_dt.strftime("%Y-%m-%d %H:%M:%S")
-        loggers[param['stock_code']].info('%s, %s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
+        loggers[param['stock_code']].info('%s~%s~%s' % (str(time), param['Ask'][0], param['Bid'][0]))
 
     for code in symbols:
         api.subscribe(code, 'ORDER_BOOK', True)
@@ -146,11 +146,13 @@ def sync_futu_premarket():
 def sync_rt_data():
     import futu_api as api
 
+    cur_date = datetime.datetime.now(timezone('America/New_York')).strftime("%Y-%m-%d %H:%M:%S").split()[0]
+
     with open('stock_sync_codes.txt') as f:
         symbols = list(map(lambda x: x.strip(), f.readlines()))
 
     loggers = {
-        symbol: setup_logger('%s_rt_data' % symbol, 'rt_data/%s_rt_data.log' % symbol)
+        symbol: setup_logger('%s_rt_data' % symbol, 'rt_data/%s_%s_rt_data.log' % (symbol, cur_date))
         for symbol in symbols
     }
 
