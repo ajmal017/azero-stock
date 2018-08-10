@@ -155,7 +155,7 @@ class ContractSamples:
         return contract
 
     @staticmethod
-    def USStockAtSmart3():
+    def USStockAtSmart111():
         contract = Contract()
         contract.symbol = "MSFT"
         contract.secType = "STK"

@@ -1,24 +1,3 @@
-# Gist example of IB wrapper ...
-#
-# Download API from http://interactivebrokers.github.io/#
-#
-# Install python API code /IBJts/source/pythonclient $ python3 setup.py install
-#
-# Note: The test cases, and the documentation refer to a python package called IBApi,
-#    but the actual package is called ibapi. Go figure.
-#
-# Get the latest version of the gateway:
-# https://www.interactivebrokers.com/en/?f=%2Fen%2Fcontrol%2Fsystemstandalone-ibGateway.php%3Fos%3Dunix
-#    (for unix: windows and mac users please find your own version)
-#
-# Run the gateway
-#
-# user: edemo
-# pwd: demo123
-#
-# Now I'll try and replicate the time telling example
-
-
 from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
 from ibapi.contract import *
@@ -61,6 +40,7 @@ class TestWrapper(EWrapper):
         return not self.get_queue('error').empty()
 
     def error(self, req_id, error_code, error_string):
+        print(req_id, error_code, error_string)
         self.get_queue('error').put((req_id, error_code, error_string))
 
     def currentTime(self, time_from_server):
@@ -73,22 +53,22 @@ class TestWrapper(EWrapper):
     def tickPrice(self, req_id: TickerId, tick_type: TickType, price: float, attrib: TickAttrib):
         super().tickPrice(req_id, tick_type, price, attrib)
         now_date = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        self.get_queue('mkt').put(('tick_price', req_id, now_date, tick_type, price, attrib))
+        self.get_queue('mkt_%d' % req_id).put((req_id, 'tick_price', now_date, tick_type, price, attrib))
 
     def tickSize(self, req_id: TickerId, tick_type: TickType, size: int):
         super().tickSize(req_id, tick_type, size)
         now_date = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        self.get_queue('mkt').put(('tick_size', req_id, now_date, tick_type, size))
+        self.get_queue('mkt_%d' % req_id).put((req_id, 'tick_size', now_date, tick_type, size))
 
     def tickString(self, req_id: TickerId, tick_type: TickType, value: str):
         super().tickString(req_id, tick_type, value)
         now_date = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        self.get_queue('mkt').put(('tick_string', req_id, now_date, tick_type, value))
+        self.get_queue('mkt_%d' % req_id).put((req_id, 'tick_string', now_date, tick_type, value))
 
     def tickGeneric(self, req_id: TickerId, tick_type: TickType, value: float):
         super().tickGeneric(req_id, tick_type, value)
         now_date = datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        self.get_queue('mkt').put(('tick_generic', req_id, now_date, tick_type, value))
+        self.get_queue('mkt_%d' % req_id).put((req_id, 'tick_generic', now_date, tick_type, value))
 
     def historicalData(self, reqId: int, bar: BarData):
         print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open,
@@ -174,21 +154,22 @@ class TestClient(EClient):
 
         return cur_time, errors
 
-    def req_market_data(self, contract, generic_tick_list="", snapshot=False, regular_snapshot=False, options=list()):
+    def req_market_data(self, req_id, contract, handler, generic_tick_list="", snapshot=False, regular_snapshot=False,
+                        options=list()):
         print("Getting the stock data from the server... ")
 
-        mkt_data = self.wrapper.init_queue('mkt')
+        mkt_data = self.wrapper.init_queue('mkt_%d' % req_id)
 
         def _worker():
             while True:
                 data = mkt_data.get()
-                print(data)
+                handler(data)
 
-        self.reqMktData(1000, contract, generic_tick_list, snapshot, regular_snapshot, options)
+        self.reqMktData(req_id, contract, generic_tick_list, snapshot, regular_snapshot, options)
 
-        t = Thread(target=_worker)
-        t.daemon = True
-        t.start()
+        worker_thread = Thread(target=_worker)
+        worker_thread.daemon = True
+        worker_thread.start()
 
     def get_hist(self):
         print('getting history data')
@@ -226,6 +207,17 @@ class IBApp(TestWrapper, TestClient):
 
 
 if __name__ == '__main__':
-    app = IBApp("127.0.0.1", 4001)
-    app.req_market_data(ContractSamples.USStockAtSmart(), generic_tick_list='233')
+    app = IBApp("localhost", 4001)
+
+
+    def _handler(data):
+        print(data)
+
+
+    # app.req_market_data(1000, ContractSamples.USStockAtSmart(), _handler, generic_tick_list='233')
+    # app.req_market_data(1001, ContractSamples.USStockAtSmart2(), _handler)
+    err = app.req_market_data(1000, ContractSamples.USStockAtSmart111(), _handler, generic_tick_list='233')
+    print(err)
+    # app.req_market_data(1003, ContractSamples.USStockAtSmart4(), _handler)
+
     # app.disconnect()
