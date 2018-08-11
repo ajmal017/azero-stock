@@ -160,7 +160,7 @@ class ContractSamples:
         contract.symbol = "MSFT"
         contract.secType = "STK"
         contract.currency = "USD"
-        contract.exchange = "SMART"
+        contract.exchange = "ISLAND"
         return contract
 
     @staticmethod
