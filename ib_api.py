@@ -81,27 +81,17 @@ class TestWrapper(EWrapper):
     def historicalDataUpdate(self, reqId: int, bar: BarData):
         self.get_queue('hist_%d' % reqId).put((reqId, 'historical_data_update', bar))
 
-    def historicalTicks(self, reqId: int, ticks: ListOfHistoricalTick, done: bool):
-        for tick in ticks:
-            print("Historical Tick. Req Id: ", reqId, ", time: ", tick.time,
-                  ", price: ", tick.price, ", size: ", tick.size)
+    def historicalTicks(self, req_id: int, ticks: ListOfHistoricalTick, done: bool):
+        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks', ticks, done))
 
-    def historicalTicksBidAsk(self, reqId: int, ticks: ListOfHistoricalTickBidAsk,
-                              done: bool):
-        for tick in ticks:
-            print("Historical Tick Bid/Ask. Req Id: ", reqId, ", time: ", tick.time,
-                  ", bid price: ", tick.priceBid, ", ask price: ", tick.priceAsk,
-                  ", bid size: ", tick.sizeBid, ", ask size: ", tick.sizeAsk)
+    def historicalTicksBidAsk(self, req_id: int, ticks: ListOfHistoricalTickBidAsk, done: bool):
+        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks_bid_ask', ticks, done))
 
-    def historicalTicksLast(self, reqId: int, ticks: ListOfHistoricalTickLast,
-                            done: bool):
-        for tick in ticks:
-            print("Historical Tick Last. Req Id: ", reqId, ", time: ", tick.time,
-                  ", price: ", tick.price, ", size: ", tick.size, ", exchange: ", tick.exchange,
-                  ", special conditions:", tick.specialConditions)
+    def historicalTicksLast(self, req_id: int, ticks: ListOfHistoricalTickLast, done: bool):
+        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks_last', ticks, done))
 
     def headTimestamp(self, reqId: int, headTimestamp: str):
-        print("HeadTimestamp: ", reqId, " ", headTimestamp)
+        self.get_queue('head_time').put((reqId, headTimestamp))
 
 
 class TestClient(EClient):
@@ -183,6 +173,38 @@ class TestClient(EClient):
         #   self.reqHistoricalTicks(i + 100, ContractSamples.USStockAtSmart(),
         #                              "20180805 08:00:00", "", 1000, "TRADES", 1, True, [])
 
+    def req_historical_ticks(self, req_id, contract, handler, start_date_time, end_date_time, number_of_ticks=1000,
+                             what_to_know='TRADES', use_rth=0, ignore_size=True, misc_options=list()):
+
+        print('getting historical ticks')
+
+        hist_ticks = self.wrapper.init_queue('hist_ticks_%d' % req_id)
+
+        self.reqHistoricalTicks(req_id, contract, start_date_time, end_date_time, number_of_ticks, what_to_know,
+                                use_rth, ignore_size, misc_options)
+
+        worker_thread = Thread(target=queue_consumer, args=(hist_ticks, handler))
+        worker_thread.daemon = True
+        worker_thread.start()
+
+    def req_head_time_stamp(self, req_id, contract, what_to_know='TRADES', use_rth=0, format_date=1):
+
+        head_time = self.wrapper.init_queue('head_time')
+
+        self.reqHeadTimeStamp(req_id, contract, what_to_know, use_rth, format_date)
+
+        try:
+            head_time = head_time.get(timeout=self.MAX_WAIT_SECONDS)
+        except queue.Empty:
+            print("Exceeded maximum wait for wrapper to respond")
+            head_time = None
+
+        errors = []
+        while self.wrapper.is_error():
+            errors.append(self.wrapper.get_error())
+
+        return head_time, errors
+
 
 class IBApp(TestWrapper, TestClient):
     def __init__(self, host, port, client_id=2):
@@ -205,13 +227,15 @@ if __name__ == '__main__':
     def _handler(data):
         print(data)
 
+
     # print(app.req_cur_time())
     query_time = (datetime.datetime.today() - datetime.timedelta(days=90)).strftime("%Y%m%d %H:%M:%S")
 
     # app.req_market_data(1000, ContractSamples.USStockAtSmart(), _handler, generic_tick_list='233')
-    app.req_market_data(1001, ContractSamples.USStockAtSmart2(), _handler)
+    # app.req_market_data(1001, ContractSamples.USStockAtSmart(), _handler)
     # app.req_market_data(1000, ContractSamples.USStockAtSmart111(), _handler, generic_tick_list='233')
     # app.req_market_data(1003, ContractSamples.USStockAtSmart4(), _handler)
     # app.req_historical_data(2000, ContractSamples.USStockAtSmart(), _handler, query_time, "1 M", "1 min")
-
+    # app.req_historical_ticks(3000, ContractSamples.USStockAtSmart(), _handler, "20180805 08:00:00", "", 200)
+    print(app.req_head_time_stamp(4000, ContractSamples.USStockAtSmart2()))
     # app.disconnect()
