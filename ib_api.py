@@ -205,13 +205,13 @@ if __name__ == '__main__':
     def _handler(data):
         print(data)
 
-
+    # print(app.req_cur_time())
     query_time = (datetime.datetime.today() - datetime.timedelta(days=90)).strftime("%Y%m%d %H:%M:%S")
 
     # app.req_market_data(1000, ContractSamples.USStockAtSmart(), _handler, generic_tick_list='233')
-    # app.req_market_data(1001, ContractSamples.USStockAtSmart2(), _handler)
+    app.req_market_data(1001, ContractSamples.USStockAtSmart2(), _handler)
     # app.req_market_data(1000, ContractSamples.USStockAtSmart111(), _handler, generic_tick_list='233')
     # app.req_market_data(1003, ContractSamples.USStockAtSmart4(), _handler)
-    app.req_historical_data(2000, ContractSamples.USStockAtSmart(), _handler, query_time, "1 M", "1 min")
+    # app.req_historical_data(2000, ContractSamples.USStockAtSmart(), _handler, query_time, "1 M", "1 min")
 
     # app.disconnect()
