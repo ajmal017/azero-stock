@@ -1,6 +1,10 @@
+import glob
+
+import pandas as pd
+from dateutil import relativedelta
+
 from ib_api import *
 from utils import *
-from dateutil import relativedelta
 
 
 def get_earliest_time(app, contract):
@@ -24,11 +28,27 @@ def make_contract(symbol, exchange):
     return contract
 
 
+def read_stock_contracts():
+    stock_codes = pd.read_csv('stock_code.csv')
+    codes = [make_contract(''.join(stock_code[1][3:]), 'SMART')
+             for i, stock_code in enumerate(stock_codes.values)]
+    return codes
+
+
+def earliest_dt_for_symbol(symbol):
+    earliest_file = sorted(glob.glob('ib_data/%s*.log' % symbol))[0]
+    return '%s 00:00:00' % earliest_file.split('_')[2]
+
+
 def sync_stock(app, contract):
-    client_id = app.clientId
+    client_id = int(app.clientId)
     symbol = contract.symbol
     logger_map = {}
     dt = datetime.datetime.today().strftime("%Y%m%d 00:00:00")
+    early_dt = earliest_dt_for_symbol(symbol)
+    if early_dt:
+        dt = early_dt
+
     while True:
         hist_data = app.req_historical_data(client_id, contract, dt,
                                             "2 M", "1 min")
