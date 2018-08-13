@@ -31,9 +31,11 @@ def make_contract(symbol, exchange):
 
 
 def read_stock_contracts():
-    stock_codes = pd.read_csv('stock_code.csv')
+    with open('stock_sync_codes.txt') as f:
+        symbols = list(map(lambda x: x.strip().replace('US.', ''), f.readlines()))
+
     codes = [make_contract(''.join(stock_code[1][3:]), 'SMART')
-             for i, stock_code in enumerate(stock_codes.values)]
+             for i, stock_code in enumerate(symbols)]
     return codes
 
 
@@ -54,7 +56,7 @@ def sync_stock(app, contract):
 
     while True:
         hist_data = app.req_historical_data(client_id, contract, dt,
-                                            "2 M", "1 min")
+                                            "5 D", "1 min")
         if not hist_data:
             return
 
@@ -85,8 +87,6 @@ def main():
     logger.info('start syncing....')
 
     for i, contract in enumerate(contracts):
-        if i == 2:
-            break
         sync_stock(app, make_contract(contract.symbol, 'SMART'))
 
 

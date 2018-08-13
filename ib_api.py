@@ -167,7 +167,7 @@ class TestClient(EClient):
                 res.append(data)
                 break
 
-            if data[1] == 'error' and data[2] == 162:
+            if data[1] == 'error' and data[2] != 2106:
                 print(data)
                 break
         return res
