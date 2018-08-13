@@ -73,8 +73,8 @@ def sync_stock(app, contract):
                 dt = data[2]
         for f in f_map.values():
             f.close()
-            logger.info('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
-                                                       symbol, hist_data[0][2].date, hist_data[-2][2].date))
+        logger.info('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
+                                                   symbol, hist_data[0][2].date, hist_data[-2][2].date))
 
         client_id += 1
 
@@ -84,7 +84,7 @@ def main():
     app = IBApp("localhost", 4001, 20)
     logger.info('start syncing....')
 
-    for i, contract in enumerate(contracts[200:]):
+    for i, contract in enumerate(contracts):
         if i == 2:
             break
         sync_stock(app, make_contract(contract.symbol, 'SMART'))
