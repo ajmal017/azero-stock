@@ -45,7 +45,6 @@ def earliest_dt_for_symbol(symbol):
 def sync_stock(app, contract):
     client_id = int(app.clientId)
     symbol = contract.symbol
-    logger_map = {}
     dt = datetime.datetime.today().strftime("%Y%m%d 00:00:00")
     early_dt = earliest_dt_for_symbol(symbol)
     if early_dt:
@@ -54,35 +53,39 @@ def sync_stock(app, contract):
     while True:
         hist_data = app.req_historical_data(client_id, contract, dt,
                                             "2 M", "1 min")
-        for data in hist_data:
-            if data[1] == 'historical_data':
-                bar = data[2]
-                sd = bar.date.split()[0]
-                if '%s_%s' % (symbol, sd) not in logger_map:
-                    logger_map['%s_%s' % (symbol, sd)] = setup_logger('%s_%s_1M' % (symbol, sd), 'ib_data/%s_%s_1M.log'
-                                                                      % (symbol, sd))
-                ib_logger = logger_map['%s_%s' % (symbol, sd)]
-                ib_logger.info('%s~%s~%s~%s~%s~%s' % (
-                    bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume))
-            elif data[1] == 'historical_data_end':
-                dt = data[2]
-
-        client_id += 1
         if not hist_data:
             app.disconnect()
             break
 
+        print('%s start syncing %s, %s-%s...' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
+                                                 symbol, hist_data[0][2].date, hist_data[-2][2].date))
+        f_map = {}
+        for data in hist_data:
+            if data[1] == 'historical_data':
+                bar = data[2]
+                sd = bar.date.split()[0]
+                if '%s_%s' % (symbol, sd) not in f_map:
+                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1M.log' % (symbol, sd), 'w')
+                f = f_map['%s_%s' % (symbol, sd)]
+                f.writelines('%s~%s~%s~%s~%s~%s' % (bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume))
+            elif data[1] == 'historical_data_end':
+                dt = data[2]
+        for f in f_map.values():
+            f.close()
+        print('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
+                                             symbol, hist_data[0][2].date, hist_data[-2][2].date))
+
+        client_id += 1
+
 
 def main():
-    if len(sys.argv) != 4:
-        raise RuntimeError('Argument is not right')
+    contracts = read_stock_contracts()
+    app = IBApp("localhost", 4001, 10)
 
-    client_id = sys.argv[1]
-    contract_name = sys.argv[2]
-    contract_exchange = sys.argv[3]
-
-    app = IBApp("localhost", 4001, client_id)
-    sync_stock(app, make_contract(contract_name, contract_exchange))
+    for i, contract in enumerate(contracts):
+        if i == 2:
+            break
+        sync_stock(app, make_contract(contract.symbol, 'SMART'))
 
 
 if __name__ == '__main__':
