@@ -34,7 +34,7 @@ def read_stock_contracts():
     with open('stock_sync_codes.txt') as f:
         symbols = list(map(lambda x: x.strip().replace('US.', ''), f.readlines()))
 
-    codes = [make_contract(''.join(stock_code[1][3:]), 'SMART')
+    codes = [make_contract(stock_code, 'SMART')
              for i, stock_code in enumerate(symbols)]
     return codes
 
