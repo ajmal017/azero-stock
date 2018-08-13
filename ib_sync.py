@@ -54,8 +54,7 @@ def sync_stock(app, contract):
         hist_data = app.req_historical_data(client_id, contract, dt,
                                             "2 M", "1 min")
         if not hist_data:
-            app.disconnect()
-            break
+            return
 
         print('%s start syncing %s, %s-%s...' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
                                                  symbol, hist_data[0][2].date, hist_data[-2][2].date))
