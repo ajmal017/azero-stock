@@ -52,8 +52,15 @@ def sync_stock(app, contract):
 
 
 def main():
-    app = IBApp("localhost", 4001, 2)
-    sync_stock(app, make_contract('MSFT', 'ISLAND'))
+    if len(sys.argv) != 4:
+        raise RuntimeError('Argument is not right')
+
+    client_id = sys.argv[1]
+    contract_name = sys.argv[2]
+    contract_exchange = sys.argv[3]
+
+    app = IBApp("localhost", 4001, client_id)
+    sync_stock(app, make_contract(contract_name, contract_exchange))
 
 
 if __name__ == '__main__':
