@@ -36,8 +36,10 @@ def read_stock_contracts():
 
 
 def earliest_dt_for_symbol(symbol):
-    earliest_file = sorted(glob.glob('ib_data/%s*.log' % symbol))[0]
-    return '%s 00:00:00' % earliest_file.split('_')[2]
+    earliest_file = sorted(glob.glob('ib_data/%s*.log' % symbol))
+    if not earliest_file:
+        return None
+    return '%s 00:00:00' % earliest_file[0].split('_')[2]
 
 
 def sync_stock(app, contract):
