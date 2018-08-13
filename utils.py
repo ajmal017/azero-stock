@@ -1,9 +1,11 @@
 import configparser
 import functools
 import gzip
+import logging
 from io import BytesIO
 
 from flask import Response, after_this_request, request
+formatter = logging.Formatter('%(message)s')
 
 
 def get_config(section):
@@ -15,6 +17,19 @@ def get_config(section):
 def parse_resp(status, content):
     return Response(content.to_json(orient='records'), mimetype='application/json') \
         if status == 0 and content is not None else Response(content, status=400)
+
+
+def setup_logger(name, log_file, level=logging.INFO):
+    """Function setup as many loggers as you want"""
+
+    handler = logging.FileHandler(log_file)
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(handler)
+
+    return logger
 
 
 def gzipped(f):

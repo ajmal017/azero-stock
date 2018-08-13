@@ -26,6 +26,8 @@ class TestWrapper(EWrapper):
         return self._queue_map[name]
 
     def get_queue(self, name):
+        if name not in self._queue_map:
+            return None
         return self._queue_map[name]
 
     def get_error(self, timeout=5):
@@ -42,7 +44,9 @@ class TestWrapper(EWrapper):
 
     def error(self, req_id, error_code, error_string):
         print(req_id, error_code, error_string)
-        self.get_queue('error').put((req_id, error_code, error_string))
+        hist_q = self.get_queue('hist_%d' % req_id)
+        if hist_q is not None:
+            hist_q.put((req_id, 'error', error_code, error_string))
 
     def currentTime(self, time_from_server):
         self.get_queue('time').put(time_from_server)
@@ -95,7 +99,7 @@ class TestWrapper(EWrapper):
 
 
 class TestClient(EClient):
-    MAX_WAIT_SECONDS = 10
+    MAX_WAIT_SECONDS = 30
 
     def __init__(self, wrapper):
         """
@@ -104,18 +108,6 @@ class TestClient(EClient):
         """
         EClient.__init__(self, wrapper)
         self._errors = queue.Queue()
-
-    def my_stock(self):
-        # ! [stkcontract]
-
-        contract = Contract()
-        contract.symbol = "HUYA"
-        contract.secType = "STK"
-        contract.currency = "USD"
-        #         #In the API side, NASDAQ is always defined as ISLAND in the exchange field
-        contract.exchange = "ISLAND"
-        # ! [stkcontract]
-        return contract
 
     def req_cur_time(self):
         """
@@ -153,25 +145,32 @@ class TestClient(EClient):
         worker_thread.daemon = True
         worker_thread.start()
 
-    def req_historical_data(self, req_id, contract, handler, query_time,
-                            duration, bar_size_setting, what_to_know='Trades',
+    def req_historical_data(self, req_id, contract, query_time,
+                            duration, bar_size_setting, what_to_know='TRADES',
                             use_rth=0, format_date=1, keep_up_to_date=False, chart_options=list()):
         print('getting history data')
+        res = []
 
         hist_data = self.wrapper.init_queue('hist_%d' % req_id)
 
         self.reqHistoricalData(req_id, contract, query_time, duration, bar_size_setting, what_to_know,
                                use_rth, format_date, keep_up_to_date, chart_options)
 
-        worker_thread = Thread(target=queue_consumer, args=(hist_data, handler))
-        worker_thread.daemon = True
-        worker_thread.start()
+        while True:
+            data = hist_data.get()
+            if data is None:
+                continue
+            if data[1] == 'historical_data':
+                res.append(data)
 
-        # self.reqHeadTimeStamp(4103, ContractSamples.USStockAtSmart(), "TRADES", 0, 1)
+            if data[1] == 'historical_data_end':
+                res.append(data)
+                break
 
-        # for i in range(10):
-        #   self.reqHistoricalTicks(i + 100, ContractSamples.USStockAtSmart(),
-        #                              "20180805 08:00:00", "", 1000, "TRADES", 1, True, [])
+            if data[1] == 'error' and data[2] == 162:
+                print(data)
+                break
+        return res
 
     def req_historical_ticks(self, req_id, contract, handler, start_date_time, end_date_time, number_of_ticks=1000,
                              what_to_know='TRADES', use_rth=0, ignore_size=True, misc_options=list()):
@@ -218,24 +217,3 @@ class IBApp(TestWrapper, TestClient):
         thread = Thread(target=self.run)
         thread.start()
         self._thread = thread
-
-
-if __name__ == '__main__':
-    app = IBApp("localhost", 4001)
-
-
-    def _handler(data):
-        print(data)
-
-
-    # print(app.req_cur_time())
-    query_time = (datetime.datetime.today() - datetime.timedelta(days=90)).strftime("%Y%m%d %H:%M:%S")
-
-    # app.req_market_data(1000, ContractSamples.USStockAtSmart(), _handler, generic_tick_list='233')
-    # app.req_market_data(1001, ContractSamples.USStockAtSmart(), _handler)
-    # app.req_market_data(1000, ContractSamples.USStockAtSmart111(), _handler, generic_tick_list='233')
-    # app.req_market_data(1003, ContractSamples.USStockAtSmart4(), _handler)
-    # app.req_historical_data(2000, ContractSamples.USStockAtSmart(), _handler, query_time, "1 M", "1 min")
-    # app.req_historical_ticks(3000, ContractSamples.USStockAtSmart(), _handler, "20180805 08:00:00", "", 200)
-    print(app.req_head_time_stamp(4000, ContractSamples.USStockAtSmart2()))
-    # app.disconnect()
