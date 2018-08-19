@@ -40,7 +40,7 @@ def read_stock_contracts():
 
 
 def earliest_dt_for_symbol(symbol):
-    earliest_file = sorted(glob.glob('ib_data/%s*.log' % symbol))
+    earliest_file = sorted(glob.glob('ib_data/%s*_1S.log' % symbol))
     if not earliest_file:
         return None
     return '%s 00:00:00' % earliest_file[0].split('_')[2]
@@ -56,7 +56,7 @@ def sync_stock(app, contract):
 
     while True:
         hist_data = app.req_historical_data(client_id, contract, dt,
-                                            "5 D", "1 min")
+                                            "1800 S", "1 secs")
         if not hist_data:
             return
 
@@ -68,7 +68,7 @@ def sync_stock(app, contract):
                 bar = data[2]
                 sd = bar.date.split()[0]
                 if '%s_%s' % (symbol, sd) not in f_map:
-                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1M.log' % (symbol, sd), 'w')
+                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1S.log' % (symbol, sd), 'w+')
                 f = f_map['%s_%s' % (symbol, sd)]
                 f.writelines('%s~%s~%s~%s~%s~%s\n' % (bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume))
             elif data[1] == 'historical_data_end':

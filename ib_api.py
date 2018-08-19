@@ -97,6 +97,19 @@ class TestWrapper(EWrapper):
     def headTimestamp(self, reqId: int, headTimestamp: str):
         self.get_queue('head_time').put((reqId, headTimestamp))
 
+    def updateMktDepth(self, reqId: TickerId, position: int, operation: int,
+                       side: int, price: float, size: int):
+        super().updateMktDepth(reqId, position, operation, side, price, size)
+        print("UpdateMarketDepth. ", reqId, "Position:", position, "Operation:",
+              operation, "Side:", side, "Price:", price, "Size", size)
+
+    def updateMktDepthL2(self, reqId: TickerId, position: int, marketMaker: str,
+                         operation: int, side: int, price: float, size: int):
+        super().updateMktDepthL2(reqId, position, marketMaker, operation, side,
+                                 price, size)
+        print("UpdateMarketDepthL2. ", reqId, "Position:", position, "Operation:",
+              operation, "Side:", side, "Price:", price, "Size", size)
+
 
 class TestClient(EClient):
     MAX_WAIT_SECONDS = 30
@@ -144,6 +157,11 @@ class TestClient(EClient):
         worker_thread = Thread(target=queue_consumer, args=(mkt_data, handler))
         worker_thread.daemon = True
         worker_thread.start()
+
+    def req_market_depth(self):
+
+        self.reqMktDepth(5000, ContractSamples.USStockWithPrimaryExch(), 5, [])
+        # self.reqMktDepthExchanges()
 
     def req_historical_data(self, req_id, contract, query_time,
                             duration, bar_size_setting, what_to_know='TRADES',
