@@ -83,7 +83,7 @@ def main():
                     with open('ib_tick/%s_%s_tick.log' % (contract.symbol, last_dt.split()[0]), 'w') as f:
                         contract_data = list(map(_map_line, contract_map[contract.symbol]))
                         f.writelines(contract_data)
-                    print('syncing %s' % contract.symbol)
+                    logger.info('syncing %s' % contract.symbol)
                 contract_map[contract.symbol].clear()
                 break
 
@@ -98,7 +98,7 @@ def main():
                     with open('ib_tick/%s_%s_tick.log' % (contract.symbol, last_dt.split()[0]), 'w') as f:
                         contract_data = list(map(_map_line, contract_map[contract.symbol]))
                         f.writelines(contract_data)
-                    print('syncing %s' % contract.symbol)
+                    logger.info('syncing %s' % contract.symbol)
                     contract_map[contract.symbol].clear()
 
                 dt_map[hist_tick_symbol] = convert_time_int_to_dt(hist_tick_data[2][0].time)
@@ -109,7 +109,7 @@ def main():
 
             currentDT = datetime.datetime.now(timezone('America/New_York'))
             time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
-            print('synced %s~%s~%s' % (hist_tick_symbol, time, dt_map[hist_tick_symbol]))
+            logger.info('synced %s~%s~%s' % (hist_tick_symbol, time, dt_map[hist_tick_symbol]))
 
 
 if __name__ == '__main__':
