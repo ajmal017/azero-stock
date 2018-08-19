@@ -27,6 +27,7 @@ def make_contract(symbol, exchange):
     contract.secType = "STK"
     contract.currency = "USD"
     contract.exchange = exchange
+    contract.primaryExchange = "ISLAND"
     return contract
 
 
