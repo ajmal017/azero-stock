@@ -22,6 +22,8 @@ class TestWrapper(EWrapper):
         self.init_queue('error')
 
     def init_queue(self, name):
+        if name in self._queue_map:
+            return self._queue_map[name]
         self._queue_map[name] = queue.Queue()
         return self._queue_map[name]
 
@@ -86,13 +88,13 @@ class TestWrapper(EWrapper):
         self.get_queue('hist_%d' % reqId).put((reqId, 'historical_data_update', bar))
 
     def historicalTicks(self, req_id: int, ticks: ListOfHistoricalTick, done: bool):
-        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks', ticks, done))
+        self.get_queue('hist_ticks').put((req_id, 'historical_ticks', ticks, done))
 
     def historicalTicksBidAsk(self, req_id: int, ticks: ListOfHistoricalTickBidAsk, done: bool):
-        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks_bid_ask', ticks, done))
+        self.get_queue('hist_ticks').put((req_id, 'historical_ticks_bid_ask', ticks, done))
 
     def historicalTicksLast(self, req_id: int, ticks: ListOfHistoricalTickLast, done: bool):
-        self.get_queue('hist_ticks_%d' % req_id).put((req_id, 'historical_ticks_last', ticks, done))
+        self.get_queue('hist_ticks').put((req_id, 'historical_ticks_last', ticks, done))
 
     def headTimestamp(self, reqId: int, headTimestamp: str):
         self.get_queue('head_time').put((reqId, headTimestamp))
@@ -190,19 +192,17 @@ class TestClient(EClient):
                 break
         return res
 
-    def req_historical_ticks(self, req_id, contract, handler, start_date_time, end_date_time, number_of_ticks=1000,
+    def req_historical_ticks(self, req_id, contract, start_date_time, end_date_time, number_of_ticks=1000,
                              what_to_know='TRADES', use_rth=0, ignore_size=True, misc_options=list()):
 
         print('getting historical ticks')
 
-        hist_ticks = self.wrapper.init_queue('hist_ticks_%d' % req_id)
+        hist_ticks = self.wrapper.init_queue('hist_ticks')
 
         self.reqHistoricalTicks(req_id, contract, start_date_time, end_date_time, number_of_ticks, what_to_know,
                                 use_rth, ignore_size, misc_options)
 
-        worker_thread = Thread(target=queue_consumer, args=(hist_ticks, handler))
-        worker_thread.daemon = True
-        worker_thread.start()
+        return hist_ticks
 
     def req_head_time_stamp(self, req_id, contract, what_to_know='TRADES', use_rth=0, format_date=1):
 
