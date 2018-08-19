@@ -69,11 +69,11 @@ def sync_stock(app, contract):
                 bar = data[2]
                 sd = bar.date.split()[0]
                 if '%s_%s' % (symbol, sd) not in f_map:
-                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1S.log' % (symbol, sd), 'w+')
+                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1S.log' % (symbol, sd), 'a')
                 f = f_map['%s_%s' % (symbol, sd)]
                 f.writelines('%s~%s~%s~%s~%s~%s\n' % (bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume))
             elif data[1] == 'historical_data_end':
-                dt = data[2]
+                dt = '%s %s' % (hist_data[0][2].date.split()[0], hist_data[0][2].date.split()[1])
         for f in f_map.values():
             f.close()
         logger.info('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
