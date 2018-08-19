@@ -56,6 +56,7 @@ def main():
     contracts = read_stock_contracts()
     app = IBApp("localhost", 4001, 30)
     logger.info('start syncing....')
+    max_days = 55
 
     dt_map = {}
     contract_map = defaultdict(list)
@@ -65,9 +66,10 @@ def main():
         dt_default = earliest_dt_for_symbol(contract.symbol)
         if dt_default is None:
             dt_default = datetime.datetime.today().strftime("%Y%m%d 00:00:00")
-            earliest_date = earlier_day(datetime.datetime.today().strftime("%Y%m%d 00:00:00"), days=5)
+            earliest_date = earlier_day(datetime.datetime.today().strftime("%Y%m%d 00:00:00"), days=max_days)
         else:
-            earliest_date = earlier_day(datetime.datetime.today().strftime("%Y%m%d 00:00:00"), days=4, hms='00:00:00')
+            earliest_date = earlier_day(datetime.datetime.today().strftime("%Y%m%d 00:00:00"), days=max_days - 1,
+                                        hms='00:00:00')
 
         last_dt = None
         while True:
