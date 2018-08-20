@@ -20,6 +20,11 @@ def earlier_day(dt, days=1, hms='23:59:59'):
             .relativedelta(days=days)).strftime("%Y%m%d " + hms)
 
 
+def earlier_sec(dt, secs=1):
+    return (datetime.datetime.strptime(dt, '%Y%m%d %H:%M:%S') - relativedelta
+            .relativedelta(seconds=secs)).strftime('%Y%m%d %H:%M:%S')
+
+
 def make_contract(symbol, exchange):
     contract = Contract()
     contract.symbol = symbol
@@ -89,7 +94,12 @@ def main():
 
             hist_tick = app.req_historical_ticks(client_id + i, contract, '', dt, 1000)
 
-            hist_tick_data = hist_tick.get()
+            try:
+                hist_tick_data = hist_tick.get(timeout=60)
+            except queue.Empty:
+                dt_map[contract.symbol] = earlier_sec(dt_map[contract.symbol])
+                continue
+
             hist_tick_req_id = hist_tick_data[0]
             hist_tick_symbol = req_id_to_contract[hist_tick_req_id]
             if hist_tick_data[2]:
