@@ -112,6 +112,23 @@ class TestWrapper(EWrapper):
         print("UpdateMarketDepthL2. ", reqId, "Position:", position, "Operation:",
               operation, "Side:", side, "Price:", price, "Size", size)
 
+    def tickByTickAllLast(self, reqId: int, tickType: int, time: int, price: float,
+                          size: int, attribs: TickAttrib, exchange: str,
+                          specialConditions: str):
+
+        super().tickByTickAllLast(reqId, tickType, time, price, size, attribs, exchange, specialConditions)
+        if tickType == 1:
+            print("Last.", end='')
+        else:
+            print("AllLast.", end='')
+        print(" ReqId: ", reqId, " Time: ", datetime.datetime.fromtimestamp(time).strftime("%Y%m%d %H:%M:%S"),
+              " Price: ", price, " Size: ", size, " Exch: ", exchange, 13, "Spec Cond: ", specialConditions, end='')
+        if attribs.pastLimit:
+            print(" pastLimit ", end='')
+        if attribs.unreported:
+            print(" unreported", end='')
+        print()
+
 
 class TestClient(EClient):
     MAX_WAIT_SECONDS = 30
@@ -160,9 +177,20 @@ class TestClient(EClient):
         worker_thread.daemon = True
         worker_thread.start()
 
-    def req_market_depth(self):
+    def req_tick_by_tick_data(self, req_id, contract, handler, tick_type='AllLast', number_of_ticks=0, ignore_size=True):
+        print("Getting the stock data from the server... ")
 
-        self.reqMktDepth(5000, ContractSamples.USStockWithPrimaryExch(), 5, [])
+        mkt_tick_data = self.wrapper.init_queue('hist_ticks')
+
+        self.reqTickByTickData(req_id, contract, tick_type, number_of_ticks, ignore_size)
+
+        worker_thread = Thread(target=queue_consumer, args=(mkt_tick_data, handler))
+        worker_thread.daemon = True
+        worker_thread.start()
+
+    def req_market_depth(self, req_id, contract, num_rows=5, options=list()):
+
+        self.reqMktDepth(req_id, contract, num_rows, options)
         # self.reqMktDepthExchanges()
 
     def req_historical_data(self, req_id, contract, query_time,

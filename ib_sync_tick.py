@@ -1,5 +1,4 @@
 import glob
-import pandas as pd
 
 from pytz import timezone
 from ib_api import *
@@ -66,6 +65,8 @@ def main():
     dt_map = {}
     contract_map = defaultdict(list)
     req_id_to_contract = {}
+    client_id = int(app.clientId)
+    index = client_id
 
     for i, contract in enumerate(contracts):
         dt_default = earliest_dt_for_symbol(contract.symbol)
@@ -79,8 +80,7 @@ def main():
         last_dt = None
         while True:
             contract = make_contract(contract.symbol, 'SMART')
-            client_id = int(app.clientId)
-            req_id_to_contract[client_id + i] = contract.symbol
+            req_id_to_contract[index] = contract.symbol
 
             dt = dt_map.get(contract.symbol, dt_default)
             if dt.split()[0] <= earliest_date:
@@ -93,6 +93,7 @@ def main():
                 break
 
             hist_tick = app.req_historical_ticks(client_id + i, contract, '', dt, 1000)
+            index += 1
 
             try:
                 hist_tick_data = hist_tick.get(timeout=60)
@@ -100,8 +101,7 @@ def main():
                 dt_map[contract.symbol] = earlier_sec(dt_map[contract.symbol])
                 continue
 
-            hist_tick_req_id = hist_tick_data[0]
-            hist_tick_symbol = req_id_to_contract[hist_tick_req_id]
+            hist_tick_symbol = contract.symbol
             if hist_tick_data[2]:
                 hist_tick_date = convert_time_int_to_dt(hist_tick_data[2][0].time).split()[0]
                 if last_dt and hist_tick_date != last_dt:
@@ -114,12 +114,15 @@ def main():
                 dt_map[hist_tick_symbol] = convert_time_int_to_dt(hist_tick_data[2][0].time)
                 contract_map[hist_tick_symbol] = hist_tick_data[2] + contract_map[hist_tick_symbol]
                 last_dt = hist_tick_date
-            else:
+            elif hist_tick_symbol in dt_map:
                 dt_map[hist_tick_symbol] = earlier_day(dt_map[hist_tick_symbol])
+            else:
+                break
 
             currentDT = datetime.datetime.now(timezone('America/New_York'))
             time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
-            logger.info('synced %s~%s~%s' % (hist_tick_symbol, time, dt_map[hist_tick_symbol]))
+            updated_time = dt_map[hist_tick_symbol]
+            logger.info('synced %s~%s~%s' % (hist_tick_symbol, time, updated_time))
 
 
 if __name__ == '__main__':
