@@ -1,5 +1,9 @@
 from ib_api import *
+from utils import *
 from ContractSamples import ContractSamples
+
+REQ_ID_TO_SYMBOL = {}
+FILES = {}
 
 
 def make_contract(symbol, exchange):
@@ -13,12 +17,30 @@ def make_contract(symbol, exchange):
 
 
 def _handler(data):
-    print(data)
+    symbol = REQ_ID_TO_SYMBOL[data[0]]
+    file = FILES[symbol]
+    file.info('~'.join(map(str, data[2:])))
+
+
+def read_stock_contracts():
+    with open('stock_sync_codes.txt') as f:
+        symbols = list(map(lambda x: x.strip().replace('US.', ''), f.readlines()))
+
+    codes = [make_contract(stock_code, 'SMART')
+             for i, stock_code in enumerate(symbols)]
+    return codes
 
 
 def sync_real_time():
     app = IBApp("localhost", 4001, 40)
-    app.req_market_depth(1000, make_contract('MSFT', 'ISLAND'))
+    date = datetime.datetime.now().strftime('%Y%m%d')
+
+    contracts = read_stock_contracts()
+    for i, contract in enumerate(contracts):
+        file_name = '%s_%s_real.log' % (contract.symbol, date)
+        FILES[contract.symbol] = setup_logger(file_name, 'ib_realtime/%s' % file_name)
+        REQ_ID_TO_SYMBOL[1000 + i] = contract.symbol
+        app.req_market_data(1000 + i, contract, _handler)
 
 
 if __name__ == '__main__':

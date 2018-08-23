@@ -129,9 +129,12 @@ class TestWrapper(EWrapper):
             print(" unreported", end='')
         print()
 
+    def histogramData(self, reqId: int, items: HistogramDataList):
+        self.get_queue('histogram_data').put((reqId, items))
+
 
 class TestClient(EClient):
-    MAX_WAIT_SECONDS = 30
+    MAX_WAIT_SECONDS = 60
 
     def __init__(self, wrapper):
         """
@@ -177,7 +180,8 @@ class TestClient(EClient):
         worker_thread.daemon = True
         worker_thread.start()
 
-    def req_tick_by_tick_data(self, req_id, contract, handler, tick_type='AllLast', number_of_ticks=0, ignore_size=True):
+    def req_tick_by_tick_data(self, req_id, contract, handler, tick_type='AllLast', number_of_ticks=0,
+                              ignore_size=True):
         print("Getting the stock data from the server... ")
 
         mkt_tick_data = self.wrapper.init_queue('hist_ticks')
@@ -249,6 +253,24 @@ class TestClient(EClient):
             errors.append(self.wrapper.get_error())
 
         return head_time, errors
+
+    def req_histogram_data(self, req_id, contract, time_period, use_rth=False):
+
+        histogram_data = self.wrapper.init_queue('histogram_data')
+
+        self.reqHistogramData(req_id, contract, use_rth, time_period)
+
+        try:
+            hist_data = histogram_data.get(timeout=self.MAX_WAIT_SECONDS)
+        except queue.Empty:
+            print("Exceeded maximum wait for wrapper to respond")
+            hist_data = None
+
+        errors = []
+        while self.wrapper.is_error():
+            errors.append(self.wrapper.get_error())
+
+        return hist_data, errors
 
 
 class IBApp(TestWrapper, TestClient):
