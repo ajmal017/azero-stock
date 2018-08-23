@@ -54,6 +54,8 @@ def sync_stock(app, contract):
             logger.info('%s waiting...' % symbol)
             time.sleep(600)
             cnt = 0
+        if dt <= '20180601 00:00:00':
+            return
 
         print(client_id + cnt)
         hist_data = app.req_historical_data(client_id + cnt, contract, dt,
