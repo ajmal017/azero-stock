@@ -50,10 +50,11 @@ def read_stock_contracts():
 
 
 def earliest_dt_for_symbol(symbol):
-    earliest_file = sorted(glob.glob('ib_tick/%s*_tick.log' % symbol))
+    earliest_file = sorted(glob.glob('%s/ib_tick/%s*_tick.log' % (STORE_PATH, symbol)))
     if not earliest_file:
         return None
-    return '%s 00:00:00' % earliest_file[0].split('_')[2]
+    earliest_file = list(map(lambda x: x.split('/')[-1], earliest_file))
+    return '%s 00:00:00' % earliest_file[0].split('_')[1]
 
 
 def main():
@@ -85,7 +86,7 @@ def main():
             dt = dt_map.get(contract.symbol, dt_default)
             if dt.split()[0] <= earliest_date:
                 if contract_map[contract.symbol]:
-                    with open('ib_tick/%s_%s_tick.log' % (contract.symbol, last_dt.split()[0]), 'w') as f:
+                    with open('%s/ib_tick/%s_%s_tick.log' % (STORE_PATH, contract.symbol, last_dt.split()[0]), 'w') as f:
                         contract_data = list(map(_map_line, contract_map[contract.symbol]))
                         f.writelines(contract_data)
                     logger.info('syncing %s' % contract.symbol)
@@ -105,7 +106,7 @@ def main():
             if hist_tick_data[2]:
                 hist_tick_date = convert_time_int_to_dt(hist_tick_data[2][0].time).split()[0]
                 if last_dt and hist_tick_date != last_dt:
-                    with open('ib_tick/%s_%s_tick.log' % (contract.symbol, last_dt.split()[0]), 'w') as f:
+                    with open('%s/ib_tick/%s_%s_tick.log' % (STORE_PATH, contract.symbol, last_dt.split()[0]), 'w') as f:
                         contract_data = list(map(_map_line, contract_map[contract.symbol]))
                         f.writelines(contract_data)
                     logger.info('syncing %s' % contract.symbol)
