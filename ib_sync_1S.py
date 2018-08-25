@@ -33,10 +33,11 @@ def read_stock_contracts():
 
 
 def earliest_dt_for_symbol(symbol):
-    earliest_file = sorted(glob.glob('ib_data/%s*_1S.log' % symbol))
+    earliest_file = sorted(glob.glob('%s/ib_data/%s*_1S.log' % (STORE_PATH, symbol)))
     if not earliest_file:
         return None
-    return relative_day('%s 23:59:59' % earliest_file[0].split('_')[2], -relativedelta.relativedelta(days=1))
+    earliest_file = list(map(lambda x: x.split('/')[-1], earliest_file))
+    return relative_day('%s 23:59:59' % earliest_file[0].split('_')[1], -relativedelta.relativedelta(days=1))
 
 
 def sync_stock(app, contract):
@@ -68,7 +69,7 @@ def sync_stock(app, contract):
                 lines = ''.join(list(map(lambda x: '%s~%s~%s~%s~%s~%s\n' % (
                     x.date, x.open, x.high, x.low, x.close, x.volume
                 ), bars)))
-                with open('ib_data/%s_%s_1S.log' % (symbol, sd), 'w') as f:
+                with open('%s/ib_data/%s_%s_1S.log' % (STORE_PATH, symbol, sd), 'w') as f:
                     f.writelines(lines)
                 logger.info('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
                                                            symbol, bars[0].date, bars[-1].date))
@@ -92,7 +93,7 @@ def sync_stock(app, contract):
                     lines = ''.join(list(map(lambda x: '%s~%s~%s~%s~%s~%s\n' % (
                         x.date, x.open, x.high, x.low, x.close, x.volume
                     ), bars)))
-                    with open('ib_data/%s_%s_1S.log' % (symbol, sd), 'w') as f:
+                    with open('%s/ib_data/%s_%s_1S.log' % (STORE_PATH, symbol, sd), 'w') as f:
                         f.writelines(lines)
                     logger.info('%s syncing %s, %s-%s done' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
                                                                symbol, bars[0].date, bars[-1].date))
