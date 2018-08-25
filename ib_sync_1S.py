@@ -77,6 +77,7 @@ def sync_stock(app, contract):
                 dt = relative_day('%s 23:59:59' % sd.split()[0], -relativedelta.relativedelta(days=1))
                 continue
             else:
+                time.sleep(600)
                 return
 
         logger.info('%s start syncing %s, %s-%s...' % (datetime.datetime.today().strftime("%Y%m%d %H:%M:%S"),
