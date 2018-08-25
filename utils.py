@@ -6,7 +6,7 @@ from io import BytesIO
 
 from flask import Response, after_this_request, request
 formatter = logging.Formatter('%(message)s')
-
+STORE_PATH = '/mnt/disks/azero-stock/azero/stock_data'
 
 def get_config(section):
     config = configparser.ConfigParser()

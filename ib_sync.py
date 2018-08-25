@@ -8,7 +8,6 @@ from utils import *
 
 logger = setup_logger('ib_sync_log', 'ib_sync.log')
 
-
 def get_earliest_time(app, contract):
     earliest_time = '%s 00:00:00' % app.req_head_time_stamp(500, contract)[0][1].split()[0]
     earliest_time = (datetime.datetime.strptime(earliest_time, '%Y%m%d %H:%M:%S') + relativedelta
@@ -41,10 +40,11 @@ def read_stock_contracts():
 
 
 def earliest_dt_for_symbol(symbol):
-    earliest_file = sorted(glob.glob('ib_data/%s*_1M.log' % symbol))
+    earliest_file = sorted(glob.glob('%s/ib_data/%s*_1M.log' % (STORE_PATH, symbol)))
     if not earliest_file:
         return None
-    return '%s 00:00:00' % earliest_file[0].split('_')[2]
+    earliest_file = list(map(lambda x: x.split('/')[-1], earliest_file))
+    return '%s 00:00:00' % earliest_file[0].split('_')[1]
 
 
 def sync_stock(app, contract):
@@ -69,7 +69,7 @@ def sync_stock(app, contract):
                 bar = data[2]
                 sd = bar.date.split()[0]
                 if '%s_%s' % (symbol, sd) not in f_map:
-                    f_map['%s_%s' % (symbol, sd)] = open('ib_data/%s_%s_1M.log' % (symbol, sd), 'w')
+                    f_map['%s_%s' % (symbol, sd)] = open('%s/ib_data/%s_%s_1M.log' % (STORE_PATH, symbol, sd), 'w')
                 f = f_map['%s_%s' % (symbol, sd)]
                 f.writelines('%s~%s~%s~%s~%s~%s\n' % (bar.date, bar.open, bar.high, bar.low, bar.close, bar.volume))
             elif data[1] == 'historical_data_end':
