@@ -16,6 +16,15 @@ def make_contract(symbol, exchange):
     return contract
 
 
+def get_usd_contract():
+    contract = Contract()
+    contract.symbol = 'USD'
+    contract.secType = "CASH"
+    contract.currency = "CNH"
+    contract.exchange = 'IDEALPRO'
+    return contract
+
+
 def _handler(data):
     symbol = REQ_ID_TO_SYMBOL[data[0]]
     file = FILES[symbol]
@@ -28,6 +37,7 @@ def read_stock_contracts():
 
     codes = [make_contract(stock_code, 'SMART')
              for i, stock_code in enumerate(symbols)]
+    codes.append(get_usd_contract())
     return codes
 
 
