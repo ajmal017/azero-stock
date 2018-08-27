@@ -48,7 +48,7 @@ def sync_real_time():
     contracts = read_stock_contracts()
     for i, contract in enumerate(contracts):
         file_name = '%s_%s_real.log' % (contract.symbol, date)
-        FILES[contract.symbol] = setup_logger(file_name, 'ib_realtime/%s' % file_name)
+        FILES[contract.symbol] = setup_logger(file_name, '%s/ib_realtime/%s' % (STORE_PATH, file_name))
         REQ_ID_TO_SYMBOL[1000 + i] = contract.symbol
         app.req_market_data(1000 + i, contract, _handler)
 
