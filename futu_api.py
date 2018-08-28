@@ -23,7 +23,7 @@ def get_trading_days(market, start_date=None, end_date=None):
     return res[0], pd.DataFrame({'date': res[1]})
 
 
-def get_stock_basicinfo(market, stock_type=None):
+def get_stock_basicinfo(market, stock_type='STOCK'):
     return quote_ctx.get_stock_basicinfo(market, stock_type)
 
 
