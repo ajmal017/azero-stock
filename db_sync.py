@@ -27,8 +27,11 @@ def get_futu_1m_data_for_symbol(symbol):
 
 
 def sync_1m_data(symbol, collection, data_list, percentage):
+    if not data_list:
+        return
     result = collection.insert_many(data_list)
-    logger.info(symbol + ' has been synced: ' + str(len(result.inserted_ids)) + (' Progress: %.2f%%' % percentage))
+    logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ':' +
+                symbol + ' has been synced: ' + str(len(result.inserted_ids)) + (' Progress: %.2f%%' % percentage))
 
 
 def query_1m_data(symbol, collection):
@@ -44,13 +47,26 @@ def main():
     db = client['azero-stock']
     total_cnt = len(basic_info[1].values[1:])
     logger.info('start')
+    start = False
     for i, value in enumerate(basic_info[1].values[1:]):
         symbol = value[0]
+        if symbol == 'US.ABS':
+            start = True
+        if not start:
+            continue
         logger.info('start syncing:' + symbol)
         data_list = get_futu_1m_data_for_symbol(symbol)
+        logger.info(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ': futu data complete')
         collection = db[symbol]
         sync_1m_data(symbol, collection, data_list, (i + 1) * 100 / float(total_cnt))
         # query_1m_data(symbol, collection)
+
+
+def main2():
+    client = MongoClient('10.140.0.2', 8081)
+    db = client['azero-stock']
+    a_collection = db['US.AAV']
+    print(list(a_collection.find()[:100]))
 
 
 if __name__ == '__main__':
