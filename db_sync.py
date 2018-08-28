@@ -50,7 +50,7 @@ def main():
     start = False
     for i, value in enumerate(basic_info[1].values[1:]):
         symbol = value[0]
-        if symbol == 'US.ABS':
+        if symbol == 'US.AGD':
             start = True
         if not start:
             continue
