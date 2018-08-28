@@ -49,8 +49,8 @@ def main():
         logger.info('start syncing:' + symbol)
         data_list = get_futu_1m_data_for_symbol(symbol)
         collection = db[symbol]
-        # sync_1m_data(symbol, collection, data_list, (i + 1) * 100 / float(total_cnt))
-        query_1m_data(symbol, collection)
+        sync_1m_data(symbol, collection, data_list, (i + 1) * 100 / float(total_cnt))
+        # query_1m_data(symbol, collection)
 
 
 if __name__ == '__main__':
