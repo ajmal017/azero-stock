@@ -2,7 +2,8 @@ import os
 import json
 import datetime
 from utils import *
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
+from pymongo.errors import DuplicateKeyError
 
 logger = setup_logger('td_db_sync', 'td_db_sync.log')
 
@@ -60,35 +61,78 @@ def main():
     print(len(files))
 
 
-def delete_all():
+def delete_all(symbol):
     client = MongoClient('10.140.0.2', 8081)
     db = client['azero-stock']
     collections = db.list_collections()
     collections = list(collections)
     total_cnt = len(collections)
     print(total_cnt)
-    for i, collection in enumerate(collections):
-        if not collection['name'].startswith('US.'):
+    for i, collection in enumerate([{'name': symbol}]):
+        if not collection['name'].startswith('US_'):
             continue
         collection = db[collection['name']]
-        collection.delete_many({
-            'type': 11
-        })
-        collection.delete_many({
-            'type': 12
-        })
-        collection.delete_many({
-            'type': 13
-        })
-        collection.delete_many({
-            'type': 14
-        })
-        collection.delete_many({
-            'type': 15
-        })
+        cnt = collection.count({'type': 6})
+        s = set()
+        rids = list()
+        # rows = list(collection.find({
+        #     'type': 6
+        # }))
+        # for e in rows:
+        #     if (e['type'], e['dt']) in s:
+        #         # if e['dt'] == 1534164486:
+        #         #     print('wwww', e)
+        #         rids.append(e['_id'])
+        #     s.add((e['type'], e['dt']))
+        # print(i, len(rids))
+        # if rids:
+        #     collection.delete_many({'_id': {'$in': rids}})
+
+        for i in range(0, cnt, 200000):
+            rows = list(collection.find({
+                'type': 6
+            }).skip(i).limit(200000))
+            for e in rows:
+                if (e['code'], e['type'], e['dt']) in s:
+                    # if e['dt'] == 1534164486:
+                    #     print('wwww', e)
+                    rids.append(e['_id'])
+                s.add((e['code'], e['type'], e['dt']))
+            print(i, len(rids))
+        if rids:
+            collection.delete_many({'_id': {'$in': rids}})
         print(collection['name'], 'done:', i, total_cnt)
-    print(list(collections))
+    print('done')
+
+
+def create_index():
+    client = MongoClient('10.140.0.2', 8081)
+    db = client['azero-stock']
+    collections = db.list_collections()
+    collections = list(collections)
+    total_cnt = len(collections)
+    print(total_cnt)
+    start = False
+    for i, collection in enumerate(collections):
+        symbol = collection['name']
+        if not collection['name'].startswith('US.'):
+            continue
+        if i == 3454:
+            start = True
+            continue
+        if not start:
+            continue
+        collection = db[collection['name']]
+        flag = True
+        while flag:
+            try:
+                collection.create_index([("type", ASCENDING), ("dt", ASCENDING)], unique=True)
+                flag = False
+            except DuplicateKeyError:
+                delete_all(symbol)
+        print(collection['name'], 'done:', i, total_cnt)
+    print('done')
 
 
 if __name__ == '__main__':
-    main()
+    delete_all('US_DAY')
